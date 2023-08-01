@@ -5,7 +5,7 @@ with open("README.md", "r", encoding = "utf-8") as file:
     long_description = file.read()
 
 setup(
-    name = "dvh-tools",
+    name = "dvh_tools",
     version = "0.0.1",
     author = "Team-Spenn",
     description = "A common package for classes and functions",
