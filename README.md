@@ -17,5 +17,5 @@ Strukturen er som følger:
 Du kan installere pakken ved å bruke `pip` kommando:
 
 ```shell
-pip install git+https://github.com/navikt/dvh-tools.git
+pip install git+https://github.com/navikt/dvh_tools.git
 ```
