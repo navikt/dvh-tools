@@ -6,7 +6,7 @@ with open("README.md", "r", encoding = "utf-8") as file:
 
 setup(
     name = "dvh_tools",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Team-Spenn",
     description = "A common package for classes and functions",
     long_description = long_description,
