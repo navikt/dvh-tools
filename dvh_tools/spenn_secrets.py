@@ -24,4 +24,4 @@ class SpennSecrets:
         if 'DBT' in secrets:
             self.DBT_secrets = dict(secrets['DBT'][environment].items())
         if 'SFTP' in secrets:
-            self.SFTP_secrets = dict(self.secrets['SFTP'].items())
+            self.SFTP_secrets = dict(secrets['SFTP'].items())
