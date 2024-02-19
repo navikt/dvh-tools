@@ -1,6 +1,4 @@
-import sys
 import oracledb
-
 
 class OracleUtils:
     def __init__(self, ORACLE_secrets):
@@ -13,7 +11,6 @@ class OracleUtils:
         Reads data from an sql query: Return results from a sql query. parameter is optional. prefetchrows in mandatory
         Example: sql_read(sql_query= "select * from table" , parameter= "2022")
         '''
-
         with self.oracle_client.cursor() as cursor:
             cursor.prefetchrows = prefetch_rows
             cursor.arraysize = prefetch_rows + 1
@@ -49,3 +46,4 @@ class OracleUtils:
             for error in cursor.getbatcherrors():
                 print("Error", error.message, "at row offset", error.offset)
             cursor.execute('commit')
+
