@@ -47,3 +47,6 @@ class OracleUtils:
                 print("Error", error.message, "at row offset", error.offset)
             cursor.execute('commit')
 
+    def close_con(self):
+        self.oracle_client.close()
+
