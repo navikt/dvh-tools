@@ -6,7 +6,7 @@ class OracleUtils:
                                                   password=ORACLE_secrets.get('password', None),
                                                   dsn=ORACLE_secrets.get('dsn', None))
 
-    def sql_read(self, sql_query, prefetch_rows=1000, parameter='', variable_name=''):
+    def sql_read(self, sql_query, prefetch_rows=1000, parameter='', variable_name='', print_info=True):
         '''
         Reads data from an sql query: Return results from a sql query. parameter is optional. prefetchrows in mandatory
         Example: sql_read(sql_query= "select * from table" , parameter= "2022")
@@ -15,7 +15,8 @@ class OracleUtils:
             cursor.prefetchrows = prefetch_rows
             cursor.arraysize = prefetch_rows + 1
             cursor.execute(sql_query) if parameter else cursor.execute(sql_query.format(parameter))
-            print(f'({variable_name}:= Rows returned: {cursor.rowcount})')
+            if print_info:
+                print(f'({variable_name}:= Rows returned: {cursor.rowcount})')
             return cursor.fetchall()
 
 
