@@ -2,9 +2,11 @@ import oracledb
 import os
 
 def _create_connection(secret):
-    oracle_client = oracledb.connect(user=os.environ.get('USER', secret.get('DB_USER', None)),
-                                     password=os.environ.get('PASSWORD', secret.get('DB_PASSWORD', None)),
-                                     dsn=secret.get('DB_DSN', None))
+    oracle_client = oracledb.connect(
+        user=os.environ.get("USER", secret.get("DB_USER", None)),
+        password=os.environ.get("PASSWORD", secret.get("DB_PASSWORD", None)),
+        dsn=secret.get("DB_DSN", None),
+    )
     return oracle_client
 
 def db_sql_run(sql_query, secret):
@@ -14,7 +16,12 @@ def db_sql_run(sql_query, secret):
         cursor.execute('commit')
 
 def db_read_to_df(sql_query, secret, prefetch_rows = 1000, print_info=True):
-    '''Function that returns the result of a sql query'''
+    '''Function that returns the result of a sql query and the columns.
+    Example:
+        rows, cols = db_read_to_df(...)
+        df = pd.DataFrame(rows, columns=cols)
+    Example 2, only the data:
+        data, _ = db_read_to_df(...)'''
     oracle_client = _create_connection(secret)
     with oracle_client.cursor() as cursor:
         cursor.prefetchrows = prefetch_rows
@@ -22,7 +29,9 @@ def db_read_to_df(sql_query, secret, prefetch_rows = 1000, print_info=True):
         cursor.execute(sql_query)
         if print_info:
             print(f'cursor rowcount: {cursor.rowcount})')
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        cols = [col[0].lower() for col in cursor.description]
+        return rows, cols
 
 def sql_df_to_db(sql_query, secret, val_dict):
     '''Insert data into database from a dataframe using sql query.
