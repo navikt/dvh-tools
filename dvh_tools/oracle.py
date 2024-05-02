@@ -21,23 +21,18 @@ def db_read_to_df(sql_query, secret):
     oracle_client = _create_connection(secret)
     return pd.read_sql(sql_query, oracle_client)
 
-def get_data_from_query(sql_query, secret, prefetch_rows = 1000, print_info=True):
+def get_data_from_query(sql_query, secret, prefetch_rows = 1000):
     '''Function that returns the result of a sql query and the columns.
-    Example:
-        rows, cols = db_read_to_df(...)
-        df = pd.DataFrame(rows, columns=cols)
-    Example 2, only the data:
-        data, _ = db_read_to_df(...)'''
+    Example: df = db_read_to_df(sql_str, secret_dict)
+    '''
     oracle_client = _create_connection(secret)
     with oracle_client.cursor() as cursor:
         cursor.prefetchrows = prefetch_rows
         cursor.arraysize = prefetch_rows + 1
         cursor.execute(sql_query)
-        if print_info:
-            print(f'cursor rowcount: {cursor.rowcount})')
         rows = cursor.fetchall()
         cols = [col[0].lower() for col in cursor.description]
-        return rows, cols
+        return pd.DataFrame(rows, columns=cols)
 
 def sql_df_to_db(sql_query, secret, val_dict):
     '''Insert data into database from a dataframe using sql query.
