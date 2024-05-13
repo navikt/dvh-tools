@@ -4,7 +4,7 @@ import time
 import json
 from google.cloud import secretmanager
 
-from dvh_tools.dbt_docs_publish import publish_docs
+from dvh_tools.dbt_tools.dbt_docs_publish import publish_docs
 
 
 def run_dbt(*, secret_name: str):
