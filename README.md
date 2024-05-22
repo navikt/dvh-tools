@@ -4,12 +4,11 @@ I `dvh_tools` eksisterer alle klasser og funksjoner samlet til gjenbruk slik at 
 ---
 
 ### Beskrivelse 🌳
-Denne repoet inneholder ulike mapper ettersom hva bruksbehovet er 
-nødvendig for å utføre sitt virke.
+Pakken inneholder funksjoner for å lese og skrice data til og fra Oracle database, samt funksjoner for å jobbe med Google Cloud.
 Strukturen er som følger:
-- database (inneholder operasjoner for det som måtte angå av database funksjonalitet)
-- secrets (all operasjoner for å implementere kobling med hemmligheter) 
-- utils (diverse funksjoner for ulike operasjoner)
+- oracle (inneholder operasjoner for det som måtte angå av database funksjonalitet)
+- cloud_functions (all operasjoner for å implementere kobling med google cloud) 
+- data_operations (diverse funksjoner for ulike operasjoner)
 
 ---
 

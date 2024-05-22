@@ -23,7 +23,6 @@ def db_read_to_df(sql_query, secret):
 
 def get_data_from_query(sql_query, secret, prefetch_rows = 1000):
     '''Function that returns the result of a sql query and the columns.
-    Example: df = db_read_to_df(sql_str, secret_dict)
     '''
     oracle_client = _create_connection(secret)
     with oracle_client.cursor() as cursor:
@@ -36,7 +35,6 @@ def get_data_from_query(sql_query, secret, prefetch_rows = 1000):
 
 def sql_df_to_db(sql_query, secret, val_dict):
     '''Insert data into database from a dataframe using sql query.
-    Example: sql_write(sql_query= sql_statement, val_dict= dataframe.to_dict(orient='records'))
     '''
     oracle_client = _create_connection(secret)
     with oracle_client.cursor() as cursor:
@@ -45,56 +43,4 @@ def sql_df_to_db(sql_query, secret, val_dict):
         for error in cursor.getbatcherrors():
             print("Error", error.message, "at row offset", error.offset)
         cursor.execute('commit')
-
-#skal fases ut innen slutten av mai
-class OracleUtils:
-    def __init__(self, ORACLE_secrets):
-        self.oracle_client = oracledb.connect(user=ORACLE_secrets.get('user', None),
-                                                  password=ORACLE_secrets.get('password', None),
-                                                  dsn=ORACLE_secrets.get('dsn', None))
-
-    def sql_read(self, sql_query, prefetch_rows=1000, parameter='', variable_name='', print_info=True):
-        '''
-        Reads data from an sql query: Return results from a sql query. parameter is optional. prefetchrows in mandatory
-        Example: sql_read(sql_query= "select * from table" , parameter= "2022")
-        '''
-        with self.oracle_client.cursor() as cursor:
-            cursor.prefetchrows = prefetch_rows
-            cursor.arraysize = prefetch_rows + 1
-            cursor.execute(sql_query) if parameter else cursor.execute(sql_query.format(parameter))
-            if print_info:
-                print(f'({variable_name}:= Rows returned: {cursor.rowcount})')
-            return cursor.fetchall()
-
-
-    def sql_run(self, sql_query, variable_name=''):
-        '''
-        Runs a sql-query in the database, but does not return data. Can take a list of queries or a single instance.
-        '''
-        with self.oracle_client.cursor() as cursor:
-            if isinstance(sql_query, list):
-                for _ in sql_query:
-                    cursor.execute(_)
-                    print(f'({variable_name}:= Rows affected: {cursor.rowcount})')
-                cursor.execute('commit')
-            elif isinstance(sql_query, str):
-                cursor.execute(sql_query)
-                print(f'({variable_name}:= Rows affected: {cursor.rowcount})')
-                cursor.execute('commit')
-
-    def sql_write(self, sql_query, val_dict, variable_name=''):
-        '''
-        Read: Insert data into tables using sql query.
-            'Commit' auto after single sql_query.
-        Example: sql_write(sql_query= sql_statement, val_dict= dataframe.to_dict(orient='records'))
-        '''
-        with self.oracle_client.cursor() as cursor:
-            cursor.executemany(sql_query, val_dict, batcherrors=True, arraydmlrowcounts = False)
-            print(f'({variable_name}:= Rows inserted: {cursor.rowcount})')
-            for error in cursor.getbatcherrors():
-                print("Error", error.message, "at row offset", error.offset)
-            cursor.execute('commit')
-
-    def close_con(self):
-        self.oracle_client.close()
 
