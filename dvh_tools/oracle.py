@@ -16,12 +16,8 @@ def db_sql_run(sql_query, secret):
         cursor.execute(sql_query)
         cursor.execute('commit')
 
-def db_read_to_df(sql_query, secret):
-    '''Function that returns the result of a sql query into a pandas dataframe'''
-    oracle_client = _create_connection(secret)
-    return pd.read_sql(sql_query, oracle_client)
 
-def get_data_from_query(sql_query, secret, prefetch_rows = 1000):
+def db_read_to_df(sql_query, secret, prefetch_rows = 1000):
     '''Function that returns the result of a sql query and the columns.
     '''
     oracle_client = _create_connection(secret)
