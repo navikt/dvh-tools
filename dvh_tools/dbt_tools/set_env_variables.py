@@ -5,17 +5,20 @@ import json
 
 def set_dbt_env_variables(secret_name: str):
     """
+    OBS! Vi har jo ikke dvh-tools i ariflow-imaget, så denne funker bare lokalt.
+
+
     Setter environment variabler for kjøring av dbt, enten i Airflow eller lokalt.
 
     For å kjøre lokalt må terminalen som kjører dbt ha satt environment variabler for
-    "USER" og "PASSWORD", hvor USER må være med proxy på skjemaet.
+    "LOKAL_USER" og "LOKAL_PASSWORD", hvor LOKAL_USER må være med proxy på skjemaet.
 
     For øyeblikket er denne tilpasset å hente Spenn secret fra Secret Manager, enten
     for P eller U. Environment variablen som må være satt fra før er "env" (P/U).
 
     Henter følgende fra GSM:
-    - DB_USER, eventuelt USER for lokal kjøring
-    - DB_PASSWORD, eventuelt PASSWORD for lokal kjøring
+    - DB_USER, eventuelt LOKAL_USER for lokal kjøring
+    - DB_PASSWORD, eventuelt LOKAL_PASSWORD for lokal kjøring
     - DB_SCHEMA
 
     Setter følgende environment variabler, som blir brukt i profiles.yml:
@@ -45,8 +48,8 @@ def set_dbt_env_variables(secret_name: str):
 
     # legger til mulighet for lokal dbt-kjøring
     # husk at user må være <ident>[SKJEMA]
-    user = os.environ.get("USER", secret_dict["DB_USER"])
-    password = os.environ.get("PASSWORD", secret_dict["DB_PASSWORD"])
+    user = os.environ.get("LOKAL_USER", secret_dict["DB_USER"])
+    password = os.environ.get("LOKAL_PASSWORD", secret_dict["DB_PASSWORD"])
     schema = secret_dict["DB_SCHEMA"]
 
     # setter environment variabler for kjøring, som puttes inn i profiles.yml
