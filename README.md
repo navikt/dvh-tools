@@ -17,4 +17,26 @@ Du kan installere pakken ved å bruke `pip` kommando:
 
 ```shell
 pip install git+https://github.com/navikt/dvh_tools.git
+pip install dvh-tools
 ```
+
+# Publisere ny versjon til PyPi
+
+For å publisere en ny versjon av pakken bruker vi git tags.
+Vi bruker Semantisk versjonering https://semver.org/
+major.minor.patch
+
+
+#### Tag en commit med en versjon
+```shell
+git tag <versjon>
+```
+#### Push en tag til github
+```shell
+git push origin tag <versjon>
+```
+
+#### Lag en release på github
+https://github.com/navikt/dvh-tools/releases/new
+
+Når en release har blitt publisert vil en Github action starte som publisere versjonen til PyPi
