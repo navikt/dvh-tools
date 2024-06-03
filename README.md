@@ -1,5 +1,5 @@
 ## Formål ♻️
-I `dvh_tools` eksisterer alle klasser og funksjoner samlet til gjenbruk slik at de er tilgjenglig for andre prosjekter.
+I `dvh-tools` eksisterer alle klasser og funksjoner samlet til gjenbruk slik at de er tilgjenglig for andre prosjekter.
 
 ---
 
