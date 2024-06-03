@@ -1,3 +1,4 @@
+import json
 from oracledb import connect
 
 
@@ -21,12 +22,15 @@ class OracleWriter:
             row = cursor.fetchone()
         return row != None
 
-    def write_batch(self, batch, dry_run=True, datatypes={}):
+    def write_batch(self, batch, dry_run=True, convert_lists=False, datatypes={}):
         if dry_run:
             return
         if self.total_rows_inserted == 0:
             # self.prepare_table()
             pass
+        if convert_lists:
+            self.convert_lists_and_dicts_in_batch_to_json(batch)
+
         if not self.insert_string:
             self.create_insert_string(batch)
         with self.con.cursor() as cursor:
@@ -68,3 +72,15 @@ class OracleWriter:
         values({', '.join([f':{col}' for col in column_names])}, SYSDATE)
         """
         return self.insert_string
+
+    @staticmethod
+    def convert_lists_and_dicts_in_batch_to_json(batch: list):
+        """Looper gjennom alle dicts i batch og konverterer nesta lister og dicts til json"""
+        for i, ele in enumerate(batch):
+            for key in ele:
+                if isinstance(ele[key], list):
+                    ele[key] = json.dumps(ele[key])
+                if isinstance(ele[key], dict):
+                    ele[key] = json.dumps(ele[key])
+            batch[i] = ele
+        return batch

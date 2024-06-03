@@ -18,7 +18,8 @@ data_transfer = DataTransfer(
     source_query=table["source-query"],
     target_table=table["target-table"],
 )
+# Sett convert_lists til True om BigQquery har json-datatyper
 data_transfer.run(
-    dry_run=False, datatypes=table.get("datatypes")
+    dry_run=False, datatypes=table.get("datatypes"), convert_lists=False
 )  # dry_run settes til True dersom man ikke ønsker å skrive til db
 ```
