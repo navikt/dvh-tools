@@ -3,8 +3,8 @@
 ```python
 from dvh_tools.bq_to_oracle import DataTransfer
 env = {
-    "gcp": "projects/21285645070/secrets/dvh_aareg_gcp_serviceaccount/versions/latest",
-    "oracle": "projects/21285645070/secrets/dvh_aareg_py/versions/latest",
+    "gcp": "projects/<project-id>/secrets/dvh_aareg_gcp_serviceaccount/versions/latest",
+    "oracle": "projects/<project-id>/secrets/dvh_aareg_py/versions/latest",
 }
 colums = ["column1", "column2"]
 table = {

@@ -11,16 +11,8 @@ class OracleWriter:
             dsn=self.__config["DB_DSN"],
         )
         self.target_table = target_table or self.__config["target-table"]
-        if self._table_is_not_empty():
-            raise ValueError(f"Target table {self.target_table} must be empty before ETL")
         self.insert_string = None
         self.total_rows_inserted = 0
-
-    def _table_is_not_empty(self) -> bool:
-        with self.con.cursor() as cursor:
-            cursor.execute(f"select 1 from {self.target_table} where rownum=1")
-            row = cursor.fetchone()
-        return row != None
 
     def write_batch(self, batch, dry_run=True, convert_lists=False, datatypes={}):
         if dry_run:
