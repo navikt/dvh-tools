@@ -20,11 +20,9 @@ class DataTransfer:
         self.oracle_writer = OracleWriter(self.__config["oracle"], target_table=target_table)
         self.bq_reader = BQReader(self.__config["gcp"], source_query=source_query)
 
-    def run(self, batch_limit=None, dry_run=False, datatypes=None, convert_lists=False):
+    def run(self, batch_limit=None, datatypes=None, convert_lists=False):
         for i, batch in enumerate(self.bq_reader):
-            self.oracle_writer.write_batch(
-                batch, datatypes=datatypes, dry_run=dry_run, convert_lists=convert_lists
-            )
+            self.oracle_writer.write_batch(batch, datatypes=datatypes, convert_lists=convert_lists)
             if batch_limit:
                 if i > batch_limit:
                     self.oracle_writer.cleanup()
