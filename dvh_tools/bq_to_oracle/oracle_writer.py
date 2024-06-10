@@ -13,15 +13,17 @@ class OracleWriter:
         self.target_table = target_table or self.__config["target-table"]
         self.insert_string = None
         self.total_rows_inserted = 0
+        self.execution_time = self.get_oracle_sysdate()
 
-    def write_batch(self, batch, dry_run=True, convert_lists=False, datatypes={}):
-        if dry_run:
-            return
+    def write_batch(self, batch, convert_lists=False, datatypes={}):
         if self.total_rows_inserted == 0:
             # self.prepare_table()
             pass
         if convert_lists:
             self.convert_lists_and_dicts_in_batch_to_json(batch)
+
+        # Legger til lastet tid
+        self.add_execution_time_to_batch(self.execution_time, batch)
 
         if not self.insert_string:
             self.create_insert_string(batch)
@@ -57,11 +59,10 @@ class OracleWriter:
 
     def create_insert_string(self, batch):
         column_names = batch[0].keys()
-        # lastet_tid = self.get_oracle_sysdate()
         self.insert_string = f"""
         insert into {self.target_table}
-        ({', '.join(column_names)}, LASTET_TID) 
-        values({', '.join([f':{col}' for col in column_names])}, SYSDATE)
+        ({', '.join(column_names)}) 
+        values({', '.join([f':{col}' for col in column_names])})
         """
         return self.insert_string
 
@@ -75,4 +76,10 @@ class OracleWriter:
                 if isinstance(ele[key], dict):
                     ele[key] = json.dumps(ele[key])
             batch[i] = ele
-        return batch
+
+    @staticmethod
+    def add_execution_time_to_batch(time, batch: list):
+        """legger til lastet_tid i batch"""
+        for i, ele in enumerate(batch):
+            ele["lastet_tid"] = time
+            batch[i] = ele
