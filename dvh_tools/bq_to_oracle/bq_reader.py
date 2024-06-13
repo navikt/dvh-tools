@@ -1,14 +1,18 @@
+from typing import Optional
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
 
 class BQReader:
-    def __init__(self, config, source_query):
+    def __init__(
+        self, config, source_query, query_job_config: Optional[bigquery.QueryJobConfig] = None
+    ):
         self.__config = config
         self.client = bigquery.Client(
             credentials=service_account.Credentials.from_service_account_info(self.__config)
         )
-        self._query_job = self.client.query(source_query)
+        self._query_job = self.client.query(source_query, job_config=query_job_config)
+
         self._generator = self.__batch_generator()
         self.total_rows_read = 0
 
