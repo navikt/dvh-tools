@@ -1,6 +1,7 @@
 import json
-
 from google.cloud import secretmanager
+from google.oauth2 import service_account
+from google.cloud import bigquery
 
 def get_gsm_secret(project_id, secret_name):
     '''Returnerer secret-verdien
