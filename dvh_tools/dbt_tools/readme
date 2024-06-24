@@ -1,0 +1,30 @@
+#############################       README       ##############################
+
+Kjør denne fila for å oppdatere/sette kommentarer i .yml-filene.
+
+Hvis dere bruker dbtinav, vil funksjonen ´make_yml_from_source´ hente kommentarer fra
+databasen via sources.sql, som blir gjenbrukt i løpet. Kolonner med samme navn og 
+ulik kommentar blir ikke tatt med.
+
+hierarkiet for kommentarer er: custom > yml > source
+det gjør at dere kan overskrive kommentarer i yml-filene med custom_comments, slik at
+alle kommentarer blir samlet på ett sted. 
+
+Ellers trenger dere en yml-fil på samme nivå som denne py-fila med custom kommentarer
+som heter ´custom_comments.yml´, hvor det ligger to dictionaries:
+# custom_column_comments: kolonne som nøkkel og gjenbrukbar kommentar
+# custom_table_descriptions: tabellkommentarer, hvis dere vil samle alle kommentarer
+
+
+# requirements:
+- sql-filene må ha en av to formater:
+    1. CTE som slutter med "final as \n", etterfulgt av kolonnene på newlines
+        - her begynner lesingen på "final as \n" og slutter på første linje som begynner med "from"
+    2. "flat" sql-fil med kolonnennavn på newlines
+        - her begynner lesingen etter "select" og slutter på første linje som begynner med "from"
+    - ingen kolonner kan begynne med "from" som navn
+    - select * klarer ikke finne kolonner, så det blir feil
+    - kolonner som er kommentert ut blir ikke tatt med
+    - kolonner med alias "... as nytt_navn" blir tatt med som "nytt_navn", altså etter " as "
+    - kilde-aliasing er ikke støttet, altså ikke ha noen tabell1.kolonne1
+    -

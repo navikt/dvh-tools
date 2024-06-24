@@ -1,35 +1,9 @@
-##############################       README       ##############################
-
-# Kjør denne fila for å oppdatere/sette kommentarer i .yml-filene.
-
-# Hvis dere bruker dbtinav, vil funksjonen ´make_yml_from_source´ hente kommentarer fra
-# databasen via sources.sql, som blir gjenbrukt i løpet. Kolonner med samme navn og 
-# ulik kommentar blir ikke tatt med.
-
-# hierarkiet for kommentarer er: custom > yml > source
-# det gjør at dere kan overskrive kommentarer i yml-filene med custom_comments, slik at
-# alle kommentarer blir samlet på ett sted. 
-
-# Ellers trenger dere en yml-fil på samme nivå som denne py-fila med custom kommentarer
-# som heter ´custom_comments.yml´, hvor det ligger to dictionaries:
-# # custom_column_comments: kolonne som nøkkel og gjenbrukbar kommentar
-# # custom_table_descriptions: tabellkommentarer, hvis dere vil samle alle kommentarer
-
-
 from yaml import safe_load
 from pathlib import Path
 import glob
-
-from dbt_yaml_generator_utils import make_yml_string, make_yml_from_source, update_yml_from_sql
+from dbt_yaml_generator_utils import update_yml_from_sql, make_yml_string
 
 def update_yaml_files(dbt_project_name):
-    # make_yml_from_source lager fila comments_source.yml med kommentarer fra databasen
-    try:
-        make_yml_from_source(dbt_project_name=dbt_project_name)
-    except Exception as err:
-        print(err)
-        print("Funket ikke å gjenbruke kommentarer fra databasen, men fortsetter ...")
-
     # update_yml_from_sql oppdaterer yml-filene i henhold til sql-filene
     # i.e. fjerner/legger til kolonner/modeller basert på sql-filstrukturen
     update_yml_from_sql()
