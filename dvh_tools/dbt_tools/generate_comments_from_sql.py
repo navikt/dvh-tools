@@ -1,12 +1,22 @@
-from yaml import safe_load
-from pathlib import Path
 import glob
+from pathlib import Path
+from yaml import safe_load
 from dvh_tools.dbt_tools.generate_comments_utils import update_yml_from_sql, make_yml_string
 
-def generate_comments_from_sql():
+def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"):
     # update_yml_from_sql oppdaterer yml-filene i henhold til sql-filene
     # i.e. fjerner/legger til kolonner/modeller basert på sql-filstrukturen
-    update_yml_from_sql()
+    def find_project_root(current_path):
+        """Recursively find the project's root directory by looking for a specific marker (e.g., '.git' folder)."""
+        if (current_path / '.git').exists():
+            return current_path
+        else:
+            return find_project_root(current_path.parent)
+    project_root = find_project_root(Path(__file__).resolve())
+    models_path = project_root / models_path
+    yaml_files = glob.glob(models_path + "**/*.yml", recursive=True)
+
+    update_yml_from_sql(models_path=models_path)
 
     overskriv_yml_med_custom = True  # overskriving av det i yml-filene med custom_comments
     endre_bare_tomme_kommentarer = False  # endrer bare tomme kommentarer, eller alle
@@ -14,11 +24,9 @@ def generate_comments_from_sql():
     column_descriptions = {}
     table_descriptions = {}
 
-    models_path = str(Path(__file__).parent.parent / "models") + "/"
-    yaml_files = glob.glob(models_path + "**/*.yml", recursive=True)
 
     try:  # lese custom comments
-        with open(str(Path(__file__).parent / "comments_custom.yml")) as f:
+        with open(str(project_root / docs_path / "comments_custom.yml")) as f:
             custom_comments = safe_load(f)
             custom_column_comments = custom_comments["custom_column_comments"]
             custom_table_descriptions = custom_comments["custom_table_descriptions"]
@@ -27,7 +35,7 @@ def generate_comments_from_sql():
         print("Ha en fil med kommentarer i 'comments_custom.yml'")
 
     try:  # lese source_column_comments
-        with open(str(Path(__file__).parent / "comments_source.yml")) as f:
+        with open(str(project_root / docs_path / "comments_source.yml")) as f:
             source_comments = safe_load(f)
             source_column_comments = source_comments["source_column_comments"]
             source_table_descriptions = source_comments["source_table_descriptions"]

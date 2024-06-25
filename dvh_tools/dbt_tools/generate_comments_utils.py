@@ -1,7 +1,6 @@
 # Description: Utilities for working with dbt documentation
-from yaml import safe_load
-from pathlib import Path
 import os
+from yaml import safe_load
 
 
 def make_yml_string(yml: dict) -> str:
@@ -239,13 +238,15 @@ def update_yml_in_dir(files_and_dirs: list, model_dir: str, models_path: str = N
             f.write(yml_string)
 
 
-def update_yml_from_sql():
+def update_yml_from_sql(*, models_path: str = None):
     """
     Oppdaterer .yml-filene i dbt-prosjektet med kolonner fra .sql-filene.
     De får tomme kommentarer med denne funksjonen, men det er midlertidig.
     Kommentarene blir fylt ut i neste steg, men må være i .ym-filene for å kunne fylles ut.
     """
-    models_path = str(Path(__file__).parent.parent / "models") + "/"
+    # models_path = str(Path(__file__).parent.parent / "models") + "/"
+    if not models_path:
+        raise ValueError("models_path must be specified")
 
     # looping over the dbt models dir and subdirs
     for model_dir in ["staging", "marts", "intermediate"]:
