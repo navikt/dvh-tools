@@ -10,7 +10,7 @@ def get_comments_from_oracle(
         *,
         project_id=None,
         secret_name=None,
-        sources_yml_path="../models/staging/sources.yml"
+        sources_yml_path="dbt/models/staging/sources.yml"
         ):
     """
     Leser kildetabeller i sources.yml, kobler seg til Oracle, henter alle kommentarer
