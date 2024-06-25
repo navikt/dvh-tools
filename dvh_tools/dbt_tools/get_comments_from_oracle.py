@@ -3,31 +3,47 @@ from pathlib import Path
 from yaml import safe_load
 from dvh_tools.oracle import db_read_to_df
 from dvh_tools.cloud_functions import get_gsm_secret
+from dvh_tools.knada_vm_user import set_environ
 
 
 def get_comments_from_oracle(
+        *,
         project_id=None,
         secret_name=None,
         sources_yml_path="../models/staging/sources.yml"
         ):
     """
-    Leser alle kilder fra sources.yml, kobler seg til Oracle og henter alle kommentarer.
+    Leser kildetabeller i sources.yml, kobler seg til Oracle, henter alle kommentarer
+    og lager en 'comments_source.yml' som kan brukes i autogenerering til modeller.
 
     Oppdaterer/lager 'comments_source.yml' med tabell- og kolonnekommentarer.
 
+    Antar at py-fila blir kjørt fra en mappe dbt-prosjektet, feks fra dbt/docs/
+    Det er her ^ comments_source.yml (output) blir lagret.
+
     Args:
-        project_id (str, optional): GCP-prosjekt-ID. Defaults to None.
-        secret_name (str, optional): Hemmelighetsnavn i GSM. Defaults to None.
-        sources_yml_path (str, optional): Path til soruces.yml. Defaults to "../models/staging/sources.yml".
+        project_id (str): GCP-prosjekt-ID. Defaults to None.
+        secret_name (str): Hemmelighetsnavn i GSM. Defaults to None.
+        sources_yml_path (str): Path til soruces.yml. Defaults to "../models/staging/sources.yml".
+    
+    Returns:
+        None
     """
+    # %%
+    # henter hemmeligheter fra Google Secret Manager. trenger DSN
+    print("setter hemmeligheter for Oracle tilkobling")
+    if project_id is None or secret_name is None:
+        print("Mangler prosjekt-ID og/eller hemmelighetsnavn")
+        exit(1)
+    secret_dict = get_gsm_secret(project_id, secret_name)
+    set_environ()
 
     # %%
     # find the sources.yml file
-    def find_all_sources(sources_yml_path=sources_yml_path):
+    def find_all_sources_from_yml(sources_yml_path=sources_yml_path):
         """Finner alle kilder fra sources.yml."""
-        sources_yml_file = sources_yml_path
-        source_file = str(Path(__file__).parent / sources_yml_file)
-
+        print("Finner sources.yml fra:", sources_yml_path)
+        source_file = str(Path(__file__).parent / sources_yml_path)
         try:
             with open(source_file, "r") as file:
                 content = file.read()
@@ -36,10 +52,8 @@ def get_comments_from_oracle(
             print(f"Prøvde å lese fra: {source_file}")
             print(f"Endre argumentet 'sources_yml_path' til riktig path, som nå er: {sources_yml_path}")
             exit(1)
-
         yml_raw = safe_load(content)
         schema_list = yml_raw["sources"]
-
         schema_table_dict = {}  # schema som key, liste av tabellnavn som value
         for schema in schema_list:
             if schema["name"] != schema["schema"]:
@@ -48,104 +62,80 @@ def get_comments_from_oracle(
             tables_name_list = []
             for table in schema["tables"]:
                 tables_name_list.append(table["name"])
-            # 'name' og 'schema' er samme. legge inn sjekk?
             schema_table_dict[schema_name] = tables_name_list
         return schema_table_dict
-
-    schema_table_dict = find_all_sources()
-
-    # %%
-    # henter hemmeligheter fra Google Secret Manager
-    if project_id is None or secret_name is None:
-        print("Mangler prosjekt-ID og/eller hemmelighetsnavn")
-        exit(1)
-    secret_dict = get_gsm_secret(project_id, secret_name)
+    schema_table_dict = find_all_sources_from_yml()
 
     # %%
     # sql-er mot Oracle for tabell- og kolonnekommentarer
-    def sql_table_comment(schema: str, table: str) -> str:
+    def sql_table_comment(schema_name: str, table_name: str) -> str:
         """Henter tabellkommentar fra Oracle-databasen.
-
         Args:
-            schema (str): skjemanavn
-            table (str): tabellnavn
-
+            schema_name (str): skjemanavn
+            table_name (str): tabellnavn
         Returns:
-            str: tabellkommentaren
-        """
-        sql = f"""
-            select
-                comments
-            from all_tab_comments
-            where owner = upper('{schema}') and table_name = upper('{table}')"""
+            str: tabellkommentaren"""
+        sql = f"""select comments from all_tab_comments
+            where owner = upper('{schema_name}') and table_name = upper('{table_name}')"""
         sql_result = db_read_to_df(sql, secret_dict)
-        if sql_result[0][0] == None:
-            return " "  # mangler kommenter
+        if sql_result.empty or sql_result.iloc[0, 0] is None:
+            return " "
         else:
-            return sql_result[0][0].replace("'", "").replace('"', "")
+            # fjerner fnutter, fordi det skaper problemer senere
+            return sql_result.iloc[0, 0].replace("'", "").replace('"', "")
 
-    def sql_columns_comments(schema: str, table: str) -> dict:
+    def sql_columns_comments(schema_name: str, table_name: str) -> dict:
         """Henter alle kolonnekommentarer til en tabell i databasen.
-
         Args:
-            schema (str): skjemanavn
-            table (str): tabellnavn
-
+            schema_name (str): skjemanavn
+            table_name (str): tabellnavn
         Returns:
-            dict: kolonnenavn som key, kommentar som value
-        """
-        sql = f"""
-        select
-            column_name,
-            comments
-        from dba_col_comments
-        where owner = upper('{schema}') and table_name = upper('{table}')"""
-        # sql_result = oracle_connection.sql_read(sql, print_info=False)
-        sql_result = db_read_to_df(sql, secret_dict)
-        commemnts_dict = {}
-        for column in sql_result:
-            name = column[0]
-            if column[1] == None:
-                description = " "  # beskrivelse mangler
-            else:
-                description = column[1].replace("'", "").replace('"', '').replace('\n', '    ')
-            commemnts_dict[name.lower()] = description
-        return commemnts_dict
-
+            pd.dataframe: df med 'column_name' og 'comments'"""
+        sql = f"""select column_name, comments from dba_col_comments
+            where owner = upper('{schema_name}') and table_name = upper('{table_name}')"""
+        df_col_comments = db_read_to_df(sql, secret_dict)
+        df_col_comments["column_name"] = df_col_comments["column_name"].str.lower()
+        df_col_comments["comments"] = df_col_comments["comments"].str.replace("'", "").str.replace('"', "")
+        df_col_comments["comments"] = df_col_comments["comments"].fillna(" ")
+        return df_col_comments
 
     # %%
     # get table descriptions
+    print("Henter tabellbeskrivelser fra Oracle")
     source_table_descriptions = {}  # antar at det ikke finnes tabeller med samme navn
     for schema, table_list in schema_table_dict.items():
         for table in table_list:
             source_description = sql_table_comment(schema, table)
-            table_description = f""""Staging av {schema}.{table}, med original beskrivelse: {source_description}"""
+            if source_description is None:
+                source_description = "(ingen modellbeskrivelse i Oracle)"
+            table_description = f"""Staging av {schema}.{table}, med original beskrivelse: {source_description}"""
             source_table_descriptions[f"stg_{table}"] = table_description
 
     # %%
     # get all column comments
-    source_column_comments = {}
-
+    # uses the first comment if there are multiple comments for the same column
+    print("Henter kolonnekommentarer fra Oracle")
+    column_comments_dict = {}
     for schema, table_list in schema_table_dict.items():
         for table in table_list:
-            source_columns_dict = sql_columns_comments(schema, table)
-
-            for column, comment in source_columns_dict.items():
-                if column not in source_column_comments:
-                    source_column_comments[column] = comment
-
-    source_column_comments = dict(sorted(source_column_comments.items()))
+            df_table_columns_comments = sql_columns_comments(schema, table)
+            for index, row in df_table_columns_comments.iterrows():
+                column = row["column_name"]
+                comment = row["comments"]
+                if column not in column_comments_dict:
+                    column_comments_dict[column] = comment
+    column_comments_dict = dict(sorted(column_comments_dict.items()))
 
     # %%
     # lage source_comments.yml
+    print("Lager 'comments_source.yml'")
     alle_kommentarer = "{\n    source_column_comments: {\n"
-    for column, comment in source_column_comments.items():
-        alle_kommentarer += f"""        {column}: "{comment}",\n"""
-    alle_kommentarer += "    },\n    source_table_descriptions: {"
+    for column, comment in column_comments_dict.items():
+        alle_kommentarer += f"""        {column}: "{comment.replace('\n', " | ")}",\n"""
+    alle_kommentarer += "    },\n\n    source_table_descriptions: {\n"
     for table, description in source_table_descriptions.items():
-        alle_kommentarer += f"""        {table}: "{comment}",\n"""
+        alle_kommentarer += f"""        {table}: "{description.replace('\n', " | ")}",\n"""
     alle_kommentarer += "    }\n}\n"
-
     with open("comments_source.yml", "w") as file:
         file.write(alle_kommentarer)
-
+    print("Ferdig! 'comments_source.yml' er lagret i samme mappe som denne filen.")
