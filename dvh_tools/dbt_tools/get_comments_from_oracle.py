@@ -40,10 +40,18 @@ def get_comments_from_oracle(
 
     # %%
     # find the sources.yml file
+    def find_project_root(current_path):
+        """Recursively find the project's root directory by looking for a specific marker (e.g., '.git' folder)."""
+        if (current_path / '.git').exists():
+            return current_path
+        else:
+            return find_project_root(current_path.parent)
+
     def find_all_sources_from_yml(sources_yml_path=sources_yml_path):
         """Finner alle kilder fra sources.yml."""
         print("Finner sources.yml fra:", sources_yml_path)
-        source_file = str(Path(__file__).parent / sources_yml_path)
+        project_root = find_project_root(Path(__file__).resolve())
+        source_file = project_root / sources_yml_path  # Adjust this line if sources_yml_path should not be relative to project_root
         try:
             with open(source_file, "r") as file:
                 content = file.read()
