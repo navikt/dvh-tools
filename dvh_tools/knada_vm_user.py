@@ -1,8 +1,5 @@
 # setter bruker og passord for lokal kjøring i knada VM
-# setter miljøvariablene LOKAL_USER og LOKAL_PASSWORD, som altså blir lagret i minnet
-
-# _create_connection i oracle.py, samt set_dbt_env_variables i set_env_variables.py,
-# bruker disse miljøvariablene for å koble til databasen.
+# setter miljøvariablene DBT_ENV_SECRET_USER og DBT_ENV_SECRET_PASS, som altså blir lagret i minnet
 
 import os
 from getpass import getpass
@@ -33,9 +30,9 @@ def set_environ():
     OBS! Dette funker i en jupyter notebook, men blir ikke lagret i minnet når python scriptet avsluttes.
     Bruk da heller bash-scriptet environment_local_user.sh for å sette miljøvariablene."""    
     user, password = get_environ_input()
-    os.environ['LOKAL_USER'] = user
-    os.environ['LOKAL_PASSWORD'] = password
-    print("Miljøvariablene LOKAL_USER og LOKAL_PASSWORD satt for: ", os.environ.get("LOKAL_USER"))
+    os.environ['DBT_ENV_SECRET_USER'] = user
+    os.environ['DBT_ENV_SECRET_PASS'] = password
+    print("Miljøvariablene DBT_ENV_SECRET_USER og DBT_ENV_SECRET_PASS satt for: ", os.environ.get("DBT_ENV_SECRET_USER"))
 
 
 if __name__ == "__main__":
