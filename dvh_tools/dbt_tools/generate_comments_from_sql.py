@@ -1,35 +1,9 @@
-##############################       README       ##############################
-
-# Kjør denne fila for å oppdatere/sette kommentarer i .yml-filene.
-
-# Hvis dere bruker dbtinav, vil funksjonen ´make_yml_from_source´ hente kommentarer fra
-# databasen via sources.sql, som blir gjenbrukt i løpet. Kolonner med samme navn og 
-# ulik kommentar blir ikke tatt med.
-
-# hierarkiet for kommentarer er: custom > yml > source
-# det gjør at dere kan overskrive kommentarer i yml-filene med custom_comments, slik at
-# alle kommentarer blir samlet på ett sted. 
-
-# Ellers trenger dere en yml-fil på samme nivå som denne py-fila med custom kommentarer
-# som heter ´custom_comments.yml´, hvor det ligger to dictionaries:
-# # custom_column_comments: kolonne som nøkkel og gjenbrukbar kommentar
-# # custom_table_descriptions: tabellkommentarer, hvis dere vil samle alle kommentarer
-
-
 from yaml import safe_load
 from pathlib import Path
 import glob
+from dvh_tools.dbt_tools.generate_comments_utils import update_yml_from_sql, make_yml_string
 
-from dbt_yaml_generator_utils import make_yml_string, make_yml_from_source, update_yml_from_sql
-
-def update_yaml_files(dbt_project_name):
-    # make_yml_from_source lager fila comments_source.yml med kommentarer fra databasen
-    try:
-        make_yml_from_source(dbt_project_name=dbt_project_name)
-    except Exception as err:
-        print(err)
-        print("Funket ikke å gjenbruke kommentarer fra databasen, men fortsetter ...")
-
+def generate_comments_from_sql():
     # update_yml_from_sql oppdaterer yml-filene i henhold til sql-filene
     # i.e. fjerner/legger til kolonner/modeller basert på sql-filstrukturen
     update_yml_from_sql()
@@ -80,7 +54,6 @@ def update_yaml_files(dbt_project_name):
                 t_columns = t["columns"]
                 if "description" in t:
                     table_descriptions[t_name] = t["description"]
-
                 for c in t_columns:
                     c_name = c["name"]
                     try:
@@ -98,9 +71,7 @@ def update_yaml_files(dbt_project_name):
                         kolonner_kommentar.append(c_description)
     yml_column_comments = dict(zip(kolonner_navn, kolonner_kommentar))
 
-
     # custom > yml > source
-
     # overskriver source_column_comments med yml_column_comments
     for col, desc in source_column_comments.items():
         column_descriptions[col] = desc
@@ -112,9 +83,7 @@ def update_yaml_files(dbt_project_name):
     # legge til nye column comments
     for col, desc in custom_column_comments.items():
         column_descriptions[col] = desc
-
     table_descriptions.update(custom_table_descriptions)
-
 
     manglende_kommentarer = []
     # Så parse filene og smelle inn nye kommentarer
@@ -131,7 +100,6 @@ def update_yaml_files(dbt_project_name):
             except KeyError:
                 print(f"Ingen 'models' i .yml {f}")
                 continue
-
             if yml_models:
                 # loop over dbt modeller i yml-fila
                 for i in range(len(tabeller)):
@@ -142,7 +110,6 @@ def update_yaml_files(dbt_project_name):
                         if t_desc.strip() != table_descriptions[t_name].strip():
                             print(f"Endrer beskrivelse for modell {t_name}")
                             yml["models"][i]["description"] = table_descriptions[t_name]
-
                     # loop over kolonnene i en modell
                     for c in range(len(t_columns)):
                         c_name = t_columns[c]["name"]
@@ -154,13 +121,11 @@ def update_yaml_files(dbt_project_name):
                         except KeyError:  # ingen beskrivelse av kolonnen
                             overskriv_beskrivelse = True
                             c_desc = None
-
                         if c_name not in column_descriptions:
                             # print(f"Fant ingen beskrivelse å bruke for {c_name}")
                             overskriv_beskrivelse = False  # får ikke overskrevet
                             if c_name not in manglende_kommentarer:
                                 manglende_kommentarer.append(c_name)
-
                         if overskriv_beskrivelse and c_desc != column_descriptions[c_name]:
                             print(f"Endrer beskrivelse for {c_name} i {t_name}")
                             oppdatert_desc = column_descriptions[c_name]

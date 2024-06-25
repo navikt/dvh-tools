@@ -4,8 +4,8 @@ import pandas as pd
 
 def _create_connection(secret):
     oracle_client = oracledb.connect(
-        user=os.environ.get("LOKAL_USER", secret.get("DB_USER", None)),
-        password=os.environ.get("LOKAL_PASSWORD", secret.get("DB_PASSWORD", None)),
+        user=os.environ.get("DBT_ENV_SECRET_USER", secret.get("DB_USER", None)),
+        password=os.environ.get("DBT_ENV_SECRET_PASS", secret.get("DB_PASSWORD", None)),
         dsn=secret.get("DB_DSN", None),
     )
     return oracle_client
