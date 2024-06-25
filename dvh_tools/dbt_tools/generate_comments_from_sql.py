@@ -14,7 +14,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
             return find_project_root(current_path.parent)
     project_root = find_project_root(Path(__file__).resolve())
     models_path = project_root / models_path
-    yaml_files = glob.glob(models_path + "**/*.yml", recursive=True)
+    yaml_files = glob.glob(str(models_path / "**" / "*.yml"), recursive=True)
 
     update_yml_from_sql(models_path=models_path)
 
