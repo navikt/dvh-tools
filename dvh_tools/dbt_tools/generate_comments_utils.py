@@ -207,12 +207,12 @@ def update_yml_in_dir(files_and_dirs: list, model_dir: str, models_path: str = N
     if len(sql_files) > 0:
         for file in sql_files:
             file_name = file[: -len(".sql")]
-            with open(models_path + model_dir + "/" + file, "r") as f:
-                model_columns = find_sql_columns(models_path + model_dir + "/" + file)
+            with open(models_path + model_dir / file, "r") as f:
+                model_columns = find_sql_columns(models_path + model_dir / file)
                 sql_dict[file_name] = model_columns
 
     if len(yml_file) > 0:
-        with open(models_path + model_dir + "/" + yml_file[0], "r") as f:
+        with open(models_path + model_dir / yml_file[0], "r") as f:
             yml_dict = safe_load(f)
         try:
             yml_models_dict = yml_dict["models"]
@@ -223,7 +223,7 @@ def update_yml_in_dir(files_and_dirs: list, model_dir: str, models_path: str = N
         if yml_models_dict:
             update_yml_dict(yml_dict=yml_dict, sql_dict=sql_dict, yml_file=yml_file[0])
             yml_string = make_yml_string(yml_dict)
-            with open(models_path + model_dir + "/" + yml_file[0], "w") as f:
+            with open(models_path + model_dir / yml_file[0], "w") as f:
                 f.write(yml_string)
 
     # hvis det ikke er noen yaml, men det er sql-filer
@@ -251,14 +251,14 @@ def update_yml_from_sql(*, models_path: str = None):
     # looping over the dbt models dir and subdirs
     for model_dir in ["staging", "marts", "intermediate"]:
         # first look for .sql files in the directory
-        files_and_dirs = os.listdir(models_path + model_dir)
+        files_and_dirs = os.listdir(models_path / model_dir)
         update_yml_in_dir(files_and_dirs, model_dir, models_path)
 
         # then look for subdirs
-        subdirs = [d for d in files_and_dirs if os.path.isdir(models_path + model_dir + "/" + d)]
+        subdirs = [d for d in files_and_dirs if os.path.isdir(models_path + model_dir / d)]
         for subdir in subdirs:
-            files_and_dirs = os.listdir(models_path + model_dir + "/" + subdir)
-            update_yml_in_dir(files_and_dirs, model_dir + "/" + subdir, models_path)
+            files_and_dirs = os.listdir(models_path / model_dir / subdir)
+            update_yml_in_dir(files_and_dirs, model_dir / subdir, models_path)
     # print("Done updating sql -> yml!")
 
 
