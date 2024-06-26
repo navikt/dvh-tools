@@ -10,7 +10,7 @@ def get_comments_from_oracle(
         *,
         project_id=None,
         secret_name=None,
-        sources_yml_path="dbt/models/staging/sources.yml"
+        sources_yml_path="dbt/sources.yml"
         ):
     """
     Leser kildetabeller i sources.yml, kobler seg til Oracle, henter alle kommentarer
@@ -24,7 +24,7 @@ def get_comments_from_oracle(
     Args:
         project_id (str): GCP-prosjekt-ID. Defaults to None.
         secret_name (str): Hemmelighetsnavn i GSM. Defaults to None.
-        sources_yml_path (str): Path til soruces.yml. Defaults to "../models/staging/sources.yml".
+        sources_yml_path (str): Path til soruces.yml. Defaults to "dbt/sources.yml".
     
     Returns:
         None
@@ -56,7 +56,7 @@ def get_comments_from_oracle(
             with open(source_file, "r") as file:
                 content = file.read()
         except FileNotFoundError:
-            print(f"Finner ikke yaml-filen hvor sources er spesifisert i models/staging")
+            print(f"Finner ikke yaml-filen hvor sources er spesifisert")
             print(f"Prøvde å lese fra: {source_file}")
             print(f"Endre argumentet 'sources_yml_path' til riktig path, som nå er: {sources_yml_path}")
             exit(1)
@@ -110,40 +110,58 @@ def get_comments_from_oracle(
     # %%
     # get table descriptions
     print("Henter tabellbeskrivelser fra Oracle")
-    source_table_descriptions = {}  # antar at det ikke finnes tabeller med samme navn
+    src_table_descriptions = {}  # kommentar til source-folder
+    stg_table_descriptions = {}  # kommentar til staging-modeller
     for schema, table_list in schema_table_dict.items():
         for table in table_list:
             source_description = sql_table_comment(schema, table)
             if source_description is None:
                 source_description = "(ingen modellbeskrivelse i Oracle)"
-            table_description = f"""Staging av {schema}.{table}, med original beskrivelse: {source_description}"""
-            source_table_descriptions[f"stg_{table}"] = table_description
+            stg_table_descriptions[f"stg_{table}"] = f"Staging av {schema}.{table}, med original beskrivelse: {source_description}"
+            src_table_descriptions[table] = source_description.replace("\n", " | ")
 
     # %%
-    # get all column comments
-    # uses the first comment if there are multiple comments for the same column
+    # makes the file dbt/models/sources_with_comments.yml
+    # and fills in the dict with unique column comments
     print("Henter kolonnekommentarer fra Oracle")
+    print("Lager 'sources_with_comments.yml'")
     column_comments_dict = {}
+    yml = "# IKKE ENDRE DENNE FILA!\n"
+    yml += "# Den er autogenerert av dvh_tools.dbt.tools.get_comments_from_oracle\n"
+    yml += "# Fjern/legg til kilder i dbt/sources.yml\n\n"
+    yml += """version: 2\n\nsources:\n"""
     for schema, table_list in schema_table_dict.items():
+        yml += f"  - name: {schema}\n"
+        yml += f"    schema: {schema}\n"
+        yml += f"    tables:\n"
         for table in table_list:
+            yml += f"      - name: {table}\n"
+            yml += f"        description: '{src_table_descriptions[table]}'\n"
+            yml += f"        columns:\n"
             df_table_columns_comments = sql_columns_comments(schema, table)
-            for index, row in df_table_columns_comments.iterrows():
+            for _, row in df_table_columns_comments.iterrows():
+                yml += f"          - name: {row['column_name']}\n"
+                yml += f"            description: '{row['comments'].replace("\n"," | ")}'\n"
+                # get unique column comments
                 column = row["column_name"]
                 comment = row["comments"]
                 if column not in column_comments_dict:
                     column_comments_dict[column] = comment
     column_comments_dict = dict(sorted(column_comments_dict.items()))
 
-    # %%
     # lage source_comments.yml
     print("Lager 'comments_source.yml'")
     alle_kommentarer = "{\n    source_column_comments: {\n"
     for column, comment in column_comments_dict.items():
         alle_kommentarer += f"""        {column}: "{comment.replace('\n', " | ")}",\n"""
     alle_kommentarer += "    },\n\n    source_table_descriptions: {\n"
-    for table, description in source_table_descriptions.items():
+    for table, description in src_table_descriptions.items():
         alle_kommentarer += f"""        {table}: "{description.replace('\n', " | ")}",\n"""
     alle_kommentarer += "    }\n}\n"
-    with open("comments_source.yml", "w") as file:
+
+    project_root = find_project_root(Path(__file__).resolve())
+    with open(project_root / "dbt/models/sources_with_comments.yml", "w") as file:
+        file.write(yml)
+    with open(project_root / "dbt/docs/comments_source.yml", "w") as file:
         file.write(alle_kommentarer)
-    print("Ferdig! 'comments_source.yml' er lagret i samme mappe som denne filen.")
+    print("Ferdig!")
