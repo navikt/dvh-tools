@@ -28,6 +28,7 @@ major.minor.patch
 
 
 #### Tag en commit med en versjon
+Du finner siste tag i Github.
 ```shell
 git tag <versjon>
 ```
@@ -37,6 +38,10 @@ git push origin tag <versjon>
 ```
 
 #### Lag en release på github
+Dette finner du under tags -> Draft new release
+
 https://github.com/navikt/dvh-tools/releases/new
 
-Når en release har blitt publisert vil en Github action starte som publisere versjonen til PyPi
+Velg tag og sett tittel (bruk tag-versjon) og publish.
+
+Når en release har blitt publisert vil en Github action starte som publisere versjonen til [PyPi](https://pypi.org/project/dvh-tools/)
