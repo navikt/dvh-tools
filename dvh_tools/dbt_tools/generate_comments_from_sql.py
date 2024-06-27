@@ -98,7 +98,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     # Så parse filene og smelle inn nye kommentarer
     for f in yaml_files:
         # hvis fila er "sources.yml", hopp over
-        if "/sources.yml" in file or "/sources_with_comments.yml" in file:
+        if "/sources.yml" in f or "/sources_with_comments.yml" in f:
             continue
         with open(f, "r") as file:
             yml = dict(safe_load(file))
