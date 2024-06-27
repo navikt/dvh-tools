@@ -114,11 +114,11 @@ def get_comments_from_oracle(
     stg_table_descriptions = {}  # kommentar til staging-modeller
     for schema, table_list in schema_table_dict.items():
         for table in table_list:
-            source_description = sql_table_comment(schema, table)
+            source_description = sql_table_comment(schema, table).replace("\n", " | ")
             if source_description is None:
                 source_description = "(ingen modellbeskrivelse i Oracle)"
             stg_table_descriptions[f"stg_{table}"] = f"Staging av {schema}.{table}, med original beskrivelse: {source_description}"
-            src_table_descriptions[table] = source_description.replace("\n", " | ")
+            src_table_descriptions[table] = source_description
 
     # %%
     # makes the file dbt/models/sources_with_comments.yml
@@ -149,14 +149,14 @@ def get_comments_from_oracle(
                     column_comments_dict[column] = comment
     column_comments_dict = dict(sorted(column_comments_dict.items()))
 
-    # lage source_comments.yml
+    # lage source_comments.yml, med kolonnekommentarer og staging-kommentarer
     print("Lager 'comments_source.yml'")
     alle_kommentarer = "{\n    source_column_comments: {\n"
     for column, comment in column_comments_dict.items():
         alle_kommentarer += f"""        {column}: "{comment.replace('\n', " | ")}",\n"""
     alle_kommentarer += "    },\n\n    source_table_descriptions: {\n"
-    for table, description in src_table_descriptions.items():
-        alle_kommentarer += f"""        stg_{table}: "{description.replace('\n', " | ")}",\n"""
+    for table, description in stg_table_descriptions.items():
+        alle_kommentarer += f"""        {table}: "{description}",\n"""
     alle_kommentarer += "    }\n}\n"
 
     project_root = find_project_root(Path(__file__).resolve())
