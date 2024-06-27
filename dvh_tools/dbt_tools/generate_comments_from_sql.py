@@ -48,7 +48,8 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     kolonner_navn = []
     kolonner_kommentar = []
     for file in yaml_files:
-        if "/sources.yml" in file:  # hvis fila er "sources.yml", hopp over
+        # hvis fila er "sources.yml", hopp over
+        if "/sources.yml" in file or "/sources_with_comments.yml" in file:
             continue
         with open(file, "r") as f:
             yml = safe_load(f)
@@ -96,7 +97,8 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     manglende_kommentarer = []
     # Så parse filene og smelle inn nye kommentarer
     for f in yaml_files:
-        if f[-12:] == "/sources.yml":  # hvis fila er "sources.yml", hopp over
+        # hvis fila er "sources.yml", hopp over
+        if "/sources.yml" in file or "/sources_with_comments.yml" in file:
             continue
         with open(f, "r") as file:
             yml = dict(safe_load(file))

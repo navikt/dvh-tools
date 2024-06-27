@@ -156,7 +156,7 @@ def get_comments_from_oracle(
         alle_kommentarer += f"""        {column}: "{comment.replace('\n', " | ")}",\n"""
     alle_kommentarer += "    },\n\n    source_table_descriptions: {\n"
     for table, description in src_table_descriptions.items():
-        alle_kommentarer += f"""        {table}: "{description.replace('\n', " | ")}",\n"""
+        alle_kommentarer += f"""        stg_{table}: "{description.replace('\n', " | ")}",\n"""
     alle_kommentarer += "    }\n}\n"
 
     project_root = find_project_root(Path(__file__).resolve())
