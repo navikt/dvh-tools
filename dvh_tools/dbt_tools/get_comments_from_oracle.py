@@ -141,7 +141,8 @@ def get_comments_from_oracle(
             df_table_columns_comments = sql_columns_comments(schema, table)
             for _, row in df_table_columns_comments.iterrows():
                 yml += f"          - name: {row['column_name']}\n"
-                yml += f"            description: '{row['comments'].replace("\n"," | ")}'\n"
+                comments_replace = row['comments'].replace('\n',' | ')
+                yml += f"            description: '{comments_replace}',\n"
                 # get unique column comments
                 column = row["column_name"]
                 comment = row["comments"]
@@ -153,7 +154,8 @@ def get_comments_from_oracle(
     print("Lager 'comments_source.yml'")
     alle_kommentarer = "{\n    source_column_comments: {\n"
     for column, comment in column_comments_dict.items():
-        alle_kommentarer += f"""        {column}: "{comment.replace('\n', " | ")}",\n"""
+        comment_replace = comment.replace('\n', " | ")
+        alle_kommentarer += f"""        {column}: "{comment_replace}",\n"""
     alle_kommentarer += "    },\n\n    source_table_descriptions: {\n"
     for table, description in stg_table_descriptions.items():
         alle_kommentarer += f"""        {table}: "{description}",\n"""
