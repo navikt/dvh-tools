@@ -75,7 +75,7 @@ def trunc_and_load_to_bq(
         bq_target (str): target table in BigQuery, dataset.table
         bq_table_config (dict): BigQuery schema for the target table, {col_name: type}
     """
-    trunc_bq_tabell(client=bq_client, bq_target=bq_target)
+    trunc_bq_tabell(bq_client=bq_client, bq_target=bq_target)
     logging.info(f"creating the table in BigQuery with the data from the given df")
     job_config = LoadJobConfig(
         schema=[SchemaField(k, v) for k, v in bq_table_config.items()],
