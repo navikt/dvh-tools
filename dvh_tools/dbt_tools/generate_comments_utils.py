@@ -82,7 +82,7 @@ def find_sql_columns(file) -> list:
     ### 2. flat select statements, finding "select\n"
     try:
         # 1. with clause
-        if content[-1].strip() == "select * from final":
+        if "select * from final\n" in content:
             # find the lines between "    select" and "    from ..."
             select_line = content.index("final as (\n")
             read_from_index = select_line + 2
@@ -104,6 +104,7 @@ def find_sql_columns(file) -> list:
                 print(f"\nError reading {file.name}")
                 print("Do not end with 'select *' statements")
                 print("Finish with explicit 'final as(' statement or a flat select")
+                print("the final version requires the line: 'select * from final\\n'")
                 exit()
             elif column.count("--") > 0:
                 # if the column has a comment, split on the first "--"
@@ -117,10 +118,11 @@ def find_sql_columns(file) -> list:
                 except IndexError:  # all normal columns
                     column_name = column.strip().replace(",", "")
                     model_columns.append(column_name)
-    except ValueError:
+    except ValueError as e:
         print(f"\nError reading {file.name}")
         print("Make sure to follow the standard structure of the sql-files,")
         print("i.e. use the with clause and 'final as(', or flat select statements")
+        print(e)
         exit()
     return model_columns
 
