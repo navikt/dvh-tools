@@ -142,7 +142,7 @@ def get_comments_from_oracle(
             for _, row in df_table_columns_comments.iterrows():
                 yml += f"          - name: {row['column_name']}\n"
                 comments_replace = row['comments'].replace('\n',' | ')
-                yml += f"            description: '{comments_replace}',\n"
+                yml += f"            description: '{comments_replace}'\n"
                 # get unique column comments
                 column = row["column_name"]
                 comment = row["comments"]
