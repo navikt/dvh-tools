@@ -44,27 +44,13 @@ def create_bigquery_client(project_id: str, secret_name_bigquery: str):
     return bigquery_client
 
 
-def trunc_bq_tabell(*, bq_client: Client, bq_target: str) -> None:
-    """Truncate a BigQuery table if it exists.
-
-    Args:
-        bq_client (Client): BigQuery client
-        bq_target (str): target table in BigQuery, dataset.table
-    """
-    try:
-        query = f"truncate table {bq_target}"
-        bq_client.query(query).result()
-        logging.info(f"truncated table {bq_target}")
-    except NotFound as e:
-        logging.info(f"table {bq_target} does not exist. Creates it in the next step.")
-
-
 def trunc_and_load_to_bq(
     *,
     df: pd.DataFrame,
     bq_client: Client,
     bq_target: str,
-    bq_table_config: dict,
+    bq_table_description: str = "",
+    bq_columns_schema: list[SchemaField],
 ) -> None:
     """Truncate a BigQuery table if it exists, then load a DataFrame to the table.
     If the BigQuery table does not exist, it will be created.
@@ -73,16 +59,24 @@ def trunc_and_load_to_bq(
         df (pd.DataFrame): DataFrame to load to BigQuery
         bq_client (Client): BigQuery client
         bq_target (str): target table in BigQuery, dataset.table
-        bq_table_config (dict): BigQuery schema for the target table, {col_name: type}
+        bq_table_description (str): table description for BigQuery
+        bq_columns_schema (list[SchemaField]): list of SchemaField objects
     """
-    trunc_bq_tabell(bq_client=bq_client, bq_target=bq_target)
     logging.info(f"creating the table in BigQuery with the data from the given df")
     job_config = LoadJobConfig(
-        schema=[SchemaField(k, v) for k, v in bq_table_config.items()],
-        write_disposition="WRITE_APPEND",
+        schema=bq_columns_schema,
+        write_disposition="WRITE_TRUNCATE",  # truncates the table before loading
+        create_disposition="CREATE_IF_NEEDED",
     )
     insert_job = bq_client.load_table_from_dataframe(
         df, bq_target, job_config=job_config
     )
     insert_job.result()
     logging.info(f"Loaded {insert_job.output_rows} rows into {bq_target}")
+
+    # Update table description, if it has changed
+    table = bq_client.get_table(bq_target)
+    if table.description != bq_table_description:
+        table.description = bq_table_description
+        bq_client.update_table(table, ["description"])
+        logging.info(f"Updated table description for {bq_target}")
