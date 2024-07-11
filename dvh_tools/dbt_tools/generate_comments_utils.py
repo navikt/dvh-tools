@@ -54,7 +54,8 @@ def make_yml_string(yml: dict) -> str:
                 if ckey == "name":
                     continue
                 elif ckey == "description":
-                    yml_string += f"{indent_8}description: '{col['description']}'\n"
+                    clean_desk = col["description"].strip().replace('"', '').replace("'", "")
+                    yml_string += f"{indent_8}description: '{clean_desk}'\n"
                 elif type(col[ckey]) == str:
                     yml_string += f"{indent_8}{ckey}: {col[ckey].strip()}\n"
                 elif type(col[ckey]) == list:
@@ -106,18 +107,16 @@ def find_sql_columns(file) -> list:
                 print("Finish with explicit 'final as(' statement or a flat select")
                 print("the final version requires the line: 'select * from final\\n'")
                 exit()
-            elif column.count("--") > 0:
+            if column.count("--") > 0:
                 # if the column has a comment, split on the first "--"
-                column_name = column.split("--")[0].strip().replace(",", "")
+                column = column.split("--")[0].strip().replace(",", "")
+            try:  # when aliasing
+                column.split(" as ")[1]
+                column_name = column.split(" as ")[1].strip().replace(",", "")
                 model_columns.append(column_name)
-            else:
-                try:  # when aliasing
-                    column.split(" as ")[1]
-                    column_name = column.split(" as ")[1].strip().replace(",", "")
-                    model_columns.append(column_name)
-                except IndexError:  # all normal columns
-                    column_name = column.strip().replace(",", "")
-                    model_columns.append(column_name)
+            except IndexError:  # all normal columns
+                column_name = column.strip().replace(",", "")
+                model_columns.append(column_name)
     except ValueError as e:
         print(f"\nError reading {file.name}")
         print("Make sure to follow the standard structure of the sql-files,")
