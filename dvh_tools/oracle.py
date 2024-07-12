@@ -2,11 +2,18 @@ import oracledb
 import os
 import pandas as pd
 
-def _create_connection(secret):
-    oracle_client = oracledb.connect(
-        user=os.environ.get("DBT_ENV_SECRET_USER", secret.get("DB_USER", None)),
-        password=os.environ.get("DBT_ENV_SECRET_PASS", secret.get("DB_PASSWORD", None)),
-        dsn=secret.get("DB_DSN", None),
+def _create_connection(secret = None):
+    if secret:
+        oracle_client = oracledb.connect(
+            user=os.environ.get("DBT_ENV_SECRET_USER", secret.get("DB_USER", None)),
+            password=os.environ.get("DBT_ENV_SECRET_PASS", secret.get("DB_PASSWORD", None)),
+            dsn=secret.get("DB_DSN", None),
+        )
+    else:
+        oracle_client = oracledb.connect(
+            user=os.environ.get("DB_USER", None),
+            password=os.environ.get("DB_PASSWORD", None),
+            dsn=os.environ.get("DB_DSN", None),
     )
     return oracle_client
 
@@ -17,7 +24,7 @@ def db_sql_run(sql_query, secret):
         cursor.execute('commit')
 
 
-def db_read_to_df(sql_query, secret, prefetch_rows = 1000):
+def db_read_to_df(sql_query, secret = None, prefetch_rows = 1000):
     '''Function that returns the result of a sql query and the columns.
     '''
     oracle_client = _create_connection(secret)
@@ -39,4 +46,3 @@ def sql_df_to_db(sql_query, secret, val_dict):
         for error in cursor.getbatcherrors():
             print("Error", error.message, "at row offset", error.offset)
         cursor.execute('commit')
-
