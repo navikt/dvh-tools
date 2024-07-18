@@ -10,7 +10,7 @@ repository = "https://github.com/navikt/dvh_tools"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-google-cloud-secret-manager = "^2.20.0"
+google-cloud-secret-manager = "^2.20.1"
 google-cloud-bigquery = "^3.25.0"
 oracledb = "^2.2.0"
 pandas = "^2.2.2"
