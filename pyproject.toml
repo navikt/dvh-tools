@@ -1,15 +1,15 @@
 [tool.poetry]
 name = "dvh-tools"
-version = "0.3.0"
+version = "0.7.3"
 description = ""
 authors = ["NAV", "DVH"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "dvh_tools"}]
-repository = "https://github.com/navikt/dvh_tools"
+repository = "https://github.com/navikt/dvh-tools"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.11"
 google-cloud-secret-manager = "^2.20.0"
 google-cloud-bigquery = "^3.25.0"
 oracledb = "^2.2.0"
