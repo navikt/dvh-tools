@@ -1,4 +1,5 @@
 import os
+import glob
 from yaml import safe_load
 
 def make_yml_string(yml: dict) -> str:
@@ -193,22 +194,22 @@ def update_yml_dict(*, yml_dict: dict, sql_dict: dict, yml_file: str) -> None:
                 add_column_empty_description(yml_dict, model_name, sql_col)
 
 
-def update_yml_in_dir(files_and_dirs: list, model_dir: str, models_path: str = None) -> None:
+def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None) -> None:
     sql_files = [f for f in files_and_dirs if f.endswith(".sql")]
     yml_file = [f for f in files_and_dirs if f.endswith(".yml")]
-    if "sources.yml" in yml_file:
-        yml_file.remove("sources.yml")
+    skip_yml = ['sources.yml', 'sources_with_comments.yml']
+    yml_file = [f for f in yml_file if f not in skip_yml]
 
     sql_dict = {}  # models as keys, columns as values
     if len(sql_files) > 0:
         for file in sql_files:
             file_name = file[: -len(".sql")]
-            with open(models_path + model_dir + "/" + file, "r") as f:
-                model_columns = find_sql_columns(models_path + model_dir + "/" + file)
+            with open(dir_path + "/" + file, "r") as f:
+                model_columns = find_sql_columns(dir_path + "/" + file)
                 sql_dict[file_name] = model_columns
 
     if len(yml_file) > 0:
-        with open(models_path + model_dir + "/" + yml_file[0], "r") as f:
+        with open(dir_path + "/" + yml_file[0], "r") as f:
             yml_dict = safe_load(f)
         try:
             yml_models_dict = yml_dict["models"]
@@ -219,35 +220,27 @@ def update_yml_in_dir(files_and_dirs: list, model_dir: str, models_path: str = N
         if yml_models_dict:
             update_yml_dict(yml_dict=yml_dict, sql_dict=sql_dict, yml_file=yml_file[0])
             yml_string = make_yml_string(yml_dict)
-            with open(models_path + model_dir + "/" + yml_file[0], "w") as f:
+            with open(dir_path + "/" + yml_file[0], "w") as f:
                 f.write(yml_string)
 
     # hvis det ikke er noen yaml, men det er sql-filer
     if len(yml_file) == 0 and len(sql_files) > 0:
-        print(f"No yml file in {model_dir}, but found {sql_files}. Making the yml file.")
+        print(f"Creating the missing yaml file in {dir_path}")
         # first make a dummy yml dict
         yml_dict = {"version": "2", "models": [{"name": "dummy", "columns": [{"name": "aarmnd"}]}]}
         update_yml_dict(yml_dict=yml_dict, sql_dict=sql_dict, yml_file="dummy.yml")
         yml_string = make_yml_string(yml_dict)
-        new_file_name = "/_" + model_dir.split("/")[-1] + "_models.yml"
-        with open(models_path + model_dir + new_file_name, "w") as f:
+        new_file_name = "/_" + dir_path.split("/")[-1] + "_models.yml"
+        with open(dir_path + new_file_name, "w") as f:
             f.write(yml_string)
 
 
-def update_yml_from_sql(*, models_path: str):
+def run_yml_update_in_dir(*, models_path: str):
     """
+    Leter etter filer models-dir, og kjører update_yamls_from_sqls_in_dir på filene.
     Oppdaterer .yml-filene i dbt-prosjektet med kolonner fra .sql-filene.
-    De får tomme kommentarer med denne funksjonen, men det er midlertidig.
-    Kommentarene blir fylt ut i neste steg, men må være i .ym-filene for å kunne fylles ut.
     """
-
-    # looping over the dbt models dir and subdirs
-    for model_dir in ["staging", "marts", "intermediate"]:
-        # first look for .sql files in the directory
-        files_and_dirs = os.listdir(models_path + model_dir)
-        update_yml_in_dir(files_and_dirs, model_dir, models_path)
-        # then look for subdirs
-        subdirs = [d for d in files_and_dirs if os.path.isdir(models_path + model_dir + "/" + d)]
-        for subdir in subdirs:
-            files_and_dirs = os.listdir(models_path + model_dir + "/" + subdir)
-            update_yml_in_dir(files_and_dirs, model_dir + "/" + subdir, models_path)
+    all_model_dirs = glob.glob(models_path + "/**/", recursive=True)
+    for dir_path in all_model_dirs:
+        files_and_dirs = os.listdir(dir_path)
+        update_yamls_from_sqls_in_dir(files_and_dirs, dir_path)

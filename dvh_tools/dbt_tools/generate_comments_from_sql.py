@@ -1,10 +1,10 @@
 import glob
 from pathlib import Path
 from yaml import safe_load
-from dvh_tools.dbt_tools.generate_comments_utils import update_yml_from_sql, make_yml_string
+from dvh_tools.dbt_tools.generate_comments_utils import run_yml_update_in_dir, make_yml_string
 
 def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"):
-    # update_yml_from_sql oppdaterer yml-filene i henhold til sql-filene
+    # run_yml_update_in_dir oppdaterer yml-filene i henhold til sql-filene
     # i.e. fjerner/legger til kolonner/modeller basert på sql-filstrukturen
     def find_project_root(current_path):
         """Recursively find the project's root directory by looking for a specific marker (e.g., '.git' folder)."""
@@ -16,7 +16,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     models_path = str(project_root / models_path) + "/"
     yaml_files = glob.glob(models_path + "**/*.yml", recursive=True)
 
-    update_yml_from_sql(models_path=models_path)
+    run_yml_update_in_dir(models_path=models_path)
 
     overskriv_yml_med_custom = True  # overskriving av det i yml-filene med custom_comments
     endre_bare_tomme_kommentarer = False  # endrer bare tomme kommentarer, eller alle
