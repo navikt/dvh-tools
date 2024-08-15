@@ -11,7 +11,7 @@
 # DBT_ENV_SECRET_PASS
 # ORA_PYTHON_DRIVER_TYPE = "thin"
 
-read -p "Database target (U/P): " DBT_DB_TARGET
+read -p "Database target (U/P/R): " DBT_DB_TARGET
 export DBT_DB_TARGET
 
 read -p "Database schema (e.g. DVH_AAP): " DBT_DB_SCHEMA
