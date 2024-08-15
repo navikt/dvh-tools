@@ -127,25 +127,6 @@ def find_sql_columns(file) -> list:
     return model_columns
 
 
-def remove_column(yml: dict, model_name: str, column_name: str):
-    # remove column from yml
-    for i, mod in enumerate(yml["models"]):
-        if mod["name"] == model_name:
-            for j, col in enumerate(mod["columns"]):
-                if col["name"] == column_name:
-                    yml["models"][i]["columns"].pop(j)
-                    break
-            break
-
-
-def add_column_empty_description(yml: dict, model_name: str, column_name: str):
-    # add column to yml
-    for i, mod in enumerate(yml["models"]):
-        if mod["name"] == model_name:
-            yml["models"][i]["columns"].append({"name": column_name, "description": ""})
-            break
-
-
 def empty_model_dict(model_name: str):
     return {"name": model_name, "description": "", "columns": []}
 
@@ -160,38 +141,36 @@ def update_yml_dict(*, yml_dict: dict, sql_dict: dict, yml_file: str) -> None:
         yml_file (str): file name of the yml file
     """
     yml_mod_names = [model["name"] for model in yml_dict["models"]]
-
-    # new sql model
     for sql_model in sql_dict:
         if sql_model in yml_mod_names:
             continue
         else:
-            print(f"Appending {sql_model} to {yml_file} with empty desc")
+            print(f"Appending {sql_model} to {yml_file}")
             yml_dict["models"].append(empty_model_dict(sql_model))
-
     # model in yml but not in sql
     for i, yml_model_n in enumerate(yml_mod_names):
         if yml_model_n not in sql_dict:
             print(f"Popping model {yml_model_n} from {yml_file}")
             yml_dict["models"].pop(i)
-
+            break  # Add break statement to exit the loop after popping the model
     # updating the columns
     for model in yml_dict["models"]:
         model_name = model["name"]
         model_cols = model["columns"]
         model_col_names = [col["name"] for col in model_cols]
+        # Create a new list of columns to keep
+        new_model_cols = [col for col in model_cols if col["name"] in sql_dict[model_name]]
+        # Print columns that are being removed
         for col in model_cols:
-            if col["name"] in sql_dict[model_name]:
-                continue
-            # column not in sql
-            else:
+            if col["name"] not in sql_dict[model_name]:
                 print(f"Popping {col['name']} from {model_name} in {yml_file}")
-                remove_column(yml_dict, model_name, col["name"])
-        # column in sql but not in yml
+        # Replace the original list with the new list
+        model["columns"] = new_model_cols
+        # Append new columns from sql_dict
         for sql_col in sql_dict[model_name]:
             if sql_col not in model_col_names:
                 print(f"Appending {sql_col} to {model_name}")
-                add_column_empty_description(yml_dict, model_name, sql_col)
+                model["columns"].append({"name": sql_col, "description": ""})
 
 
 def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None) -> None:

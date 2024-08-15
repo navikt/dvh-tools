@@ -1,9 +1,8 @@
-# %%
 from pathlib import Path
 from yaml import safe_load
 from dvh_tools.oracle import db_read_to_df
-from dvh_tools.cloud_functions import get_gsm_secret
 from dvh_tools.knada_vm_user import set_environ
+from dvh_tools.cloud_functions import get_gsm_secret
 
 
 def get_comments_from_oracle(
@@ -29,7 +28,6 @@ def get_comments_from_oracle(
     Returns:
         None
     """
-    # %%
     # henter hemmeligheter fra Google Secret Manager. trenger DSN
     print("setter hemmeligheter for Oracle tilkobling")
     if project_id is None or secret_name is None:
@@ -38,7 +36,6 @@ def get_comments_from_oracle(
     secret_dict = get_gsm_secret(project_id, secret_name)
     set_environ()
 
-    # %%
     # find the sources.yml file
     def find_project_root(current_path):
         """Recursively find the project's root directory by looking for a specific marker (e.g., '.git' folder)."""
@@ -58,7 +55,7 @@ def get_comments_from_oracle(
         except FileNotFoundError:
             print(f"Finner ikke yaml-filen hvor sources er spesifisert")
             print(f"Prøvde å lese fra: {source_file}")
-            print(f"Endre argumentet 'sources_yml_path' til riktig path, som nå er: {sources_yml_path}")
+            print(f"Endre argumentet 'sources_yml_path' til riktig path, som nå er:\n {sources_yml_path}")
             exit(1)
         yml_raw = safe_load(content)
         schema_list = yml_raw["sources"]
@@ -72,11 +69,9 @@ def get_comments_from_oracle(
                 tables_name_list.append(table["name"])
             schema_table_dict[schema_name] = tables_name_list
         return schema_table_dict
-    schema_table_dict = find_all_sources_from_yml()
 
-    # %%
-    # sql-er mot Oracle for tabell- og kolonnekommentarer
-    def sql_table_comment(schema_name: str, table_name: str) -> str:
+
+    def get_table_comments_from_oracle(schema_name: str, table_name: str) -> str:
         """Henter tabellkommentar fra Oracle-databasen.
         Args:
             schema_name (str): skjemanavn
@@ -87,12 +82,13 @@ def get_comments_from_oracle(
             where owner = upper('{schema_name}') and table_name = upper('{table_name}')"""
         sql_result = db_read_to_df(sql, secret_dict)
         if sql_result.empty or sql_result.iloc[0, 0] is None:
-            return " "
+            return ""
         else:
             # fjerner fnutter, fordi det skaper problemer senere
             return sql_result.iloc[0, 0].replace("'", "").replace('"', "")
 
-    def sql_columns_comments(schema_name: str, table_name: str) -> dict:
+
+    def get_column_comments_from_oracle(schema_name: str, table_name: str) -> dict:
         """Henter alle kolonnekommentarer til en tabell i databasen.
         Args:
             schema_name (str): skjemanavn
@@ -104,23 +100,23 @@ def get_comments_from_oracle(
         df_col_comments = db_read_to_df(sql, secret_dict)
         df_col_comments["column_name"] = df_col_comments["column_name"].str.lower()
         df_col_comments["comments"] = df_col_comments["comments"].str.replace("'", "").str.replace('"', "")
-        df_col_comments["comments"] = df_col_comments["comments"].fillna(" ")
+        df_col_comments["comments"] = df_col_comments["comments"].fillna("")
         return df_col_comments
 
-    # %%
-    # get table descriptions
+
     print("Henter tabellbeskrivelser fra Oracle")
+    schema_table_dict = find_all_sources_from_yml()
     src_table_descriptions = {}  # kommentar til source-folder
     stg_table_descriptions = {}  # kommentar til staging-modeller
     for schema, table_list in schema_table_dict.items():
         for table in table_list:
-            source_description = sql_table_comment(schema, table).replace("\n", " | ")
+            source_description = get_table_comments_from_oracle(schema, table).replace("\n", " | ")
             if source_description is None:
                 source_description = "(ingen modellbeskrivelse i Oracle)"
-            stg_table_descriptions[f"stg_{table}"] = f"Staging av {schema}.{table}, med original beskrivelse: {source_description}"
+            stg_table_descriptions[f"stg_{table}"] = f"Staging av {schema}.{table}, med original beskrivelse: {source_description}."
             src_table_descriptions[table] = source_description
 
-    # %%
+
     # makes the file dbt/models/sources_with_comments.yml
     # and fills in the dict with unique column comments
     print("Henter kolonnekommentarer fra Oracle")
@@ -138,7 +134,7 @@ def get_comments_from_oracle(
             yml += f"      - name: {table}\n"
             yml += f"        description: '{src_table_descriptions[table]}'\n"
             yml += f"        columns:\n"
-            df_table_columns_comments = sql_columns_comments(schema, table)
+            df_table_columns_comments = get_column_comments_from_oracle(schema, table)
             for _, row in df_table_columns_comments.iterrows():
                 yml += f"          - name: {row['column_name']}\n"
                 comments_replace = row['comments'].replace('\n',' | ')
