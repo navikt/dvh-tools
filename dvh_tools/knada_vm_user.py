@@ -1,16 +1,14 @@
-# setter bruker og passord for lokal kjøring i knada VM
-# setter miljøvariablene DBT_ENV_SECRET_USER og DBT_ENV_SECRET_PASS, som altså blir lagret i minnet
-
 import os
 from getpass import getpass
 
-# Brukernavn kan settes manuelt eller fra denne listen, bare å legge til flere
+# Dictionary mapping numeric keys to user username IDs
 user_dict = {
     "1": "M167094",
     "2": "W158886",
     "3": "A170141",
 }
 
+# Dictionary mapping numeric keys to schema names
 schema_dict = {
     "1": "DVH_AAP",
     "2": "DVH_DAGPENGER",
@@ -18,7 +16,22 @@ schema_dict = {
     "4": "DVH_TILLEGGSSTONADER",
 }
 
-def get_environ_input():
+def get_environ_input() -> tuple[str, str]:
+    """Prompts the user for credentials and schema information.
+
+    This function displays options for user IDs and schemas, then prompts the user
+    to select or enter these values manually. It also asks for a password securely.
+    The selected or entered values are returned as a tuple containing the user and password.
+
+    Returns:
+        tuple[str, str]: A tuple where the first element is the user information
+        (formatted as "user[schema]" if a schema is provided) and the second element is the password.
+
+    Examples:
+        >>> user, password = get_environ_input()
+        >>> print(user)
+        >>> print(password)
+    """
     print("Hurtigvalg for brukere:")
     for key, value in user_dict.items():
         print(f"    {key}: {value}")
@@ -37,14 +50,19 @@ def get_environ_input():
     return f"{user}[{skjema}]", password
 
 
-def set_environ():
-    """Bruker input og getpass for å sette miljøvariablene for bruker og passord,
-    dersom de ikke finnes fra før.
+def set_environ() -> None:
+    """Sets environment variables for user and password if they are not already set.
 
-    OBS! Dette funker i gjeldende sesjon (og da feks i en jupyter notebook), men 
-    miljøvariablene som eventuelt settes blir ikke lagret i terminalen når scriptet
-    slutter. 
-    Bruk da heller bash-scriptet environment_local_user.sh for å sette miljøvariablene.
+    This function checks if the environment variables `DBT_ENV_SECRET_USER` and
+    `DBT_ENV_SECRET_PASS` are already set. If not, it prompts the user for credentials
+    and schema information, then sets these environment variables for the current session.
+    Note that these environment variables are only set for the current session and will
+    not persist after the script ends. For persistent environment variables, use the
+    `environment_local_user.sh` script.
+
+    Examples:
+        >>> set_environ()
+        Miljøvariablene DBT_ENV_SECRET_USER og DBT_ENV_SECRET_PASS satt for: M167094
     """
     if (
         os.environ.get("DBT_ENV_SECRET_USER") is not None
