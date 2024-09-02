@@ -122,7 +122,7 @@ class OracleWriter:
         self.con.close()
 
 
-    def prepare_table(self) -> bool:
+    def prepare_table(self):
         """Truncates the target table to prepare it for new data.
 
         Returns:
@@ -133,7 +133,7 @@ class OracleWriter:
         return True
 
 
-    def get_oracle_sysdate(self) -> str:
+    def get_oracle_sysdate(self):
         """Retrieves the current system date from the Oracle database.
 
         Returns:

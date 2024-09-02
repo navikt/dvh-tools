@@ -4,7 +4,7 @@ import datetime
 
 
 @pytest.fixture()
-def batch() -> list:
+def batch():
     """Fixture that provides a sample batch of data for testing.
 
     This fixture creates a list of dictionaries, each representing a batch of data. 

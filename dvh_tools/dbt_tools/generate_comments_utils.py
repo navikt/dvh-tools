@@ -2,7 +2,7 @@ import os
 import glob
 from yaml import safe_load
 
-def make_yml_string(yml: dict) -> str:
+def make_yml_string(yml: dict):
     """Converts a YAML dictionary into a YAML-formatted string suitable for writing to a file.
 
     This function takes a dictionary representing YAML data and formats it into a YAML string.
@@ -109,7 +109,7 @@ def make_yml_string(yml: dict) -> str:
     return yml_string
 
 
-def find_sql_columns(file) -> list:
+def find_sql_columns(file):
     """Extracts column names from a SQL file.
 
     This function reads a SQL file and identifies column names based on the SQL query structure.

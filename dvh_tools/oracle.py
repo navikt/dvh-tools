@@ -58,7 +58,7 @@ def db_sql_run(sql_query, secret) -> None:
         cursor.execute('commit')
 
 
-def db_read_to_df(sql_query, secret = None, prefetch_rows = 1000) -> pd.Dataframe:
+def db_read_to_df(sql_query, secret = None, prefetch_rows = 1000):
     """Executes an SQL query and returns the result as a pandas DataFrame.
 
     This function connects to the Oracle database using the provided secret dictionary or 

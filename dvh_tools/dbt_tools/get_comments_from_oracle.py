@@ -57,7 +57,7 @@ def get_comments_from_oracle(
     secret_dict = get_gsm_secret(project_id, secret_name)
     set_environ()
 
-    def find_project_root(current_path) -> Path:
+    def find_project_root(current_path):
         """Recursively finds the root directory of a project by searching for a specific marker directory.
 
         This function starts from the given `current_path` and moves up the directory tree, checking for the
@@ -84,7 +84,7 @@ def get_comments_from_oracle(
         else:
             return find_project_root(current_path.parent)
 
-    def find_all_sources_from_yml(sources_yml_path=sources_yml_path) -> dict:
+    def find_all_sources_from_yml(sources_yml_path=sources_yml_path):
         """Finds all source tables listed in the specified `sources.yml` file.
 
         This function locates the `sources.yml` file from the project's root directory, reads its content,
@@ -148,7 +148,7 @@ def get_comments_from_oracle(
         return schema_table_dict
 
 
-    def get_table_comments_from_oracle(schema_name: str, table_name: str) -> str:
+    def get_table_comments_from_oracle(schema_name: str, table_name: str):
         """Retrieves the table comment from an Oracle database for a specified schema and table.
 
         This function queries the Oracle database to fetch the comment associated with a particular table
@@ -184,7 +184,7 @@ def get_comments_from_oracle(
             return sql_result.iloc[0, 0].replace("'", "").replace('"', "")
 
 
-    def get_column_comments_from_oracle(schema_name: str, table_name: str) -> dict:
+    def get_column_comments_from_oracle(schema_name: str, table_name: str):
         """Retrieves all column comments for a specified table in an Oracle database schema.
 
         This function queries the Oracle database to fetch comments for each column in the specified table.

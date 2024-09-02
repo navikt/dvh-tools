@@ -7,7 +7,7 @@ import logging
 import json
 
 
-def get_secret_env(resource_name) -> dict:
+def get_secret_env(resource_name):
     """Retrieves and decodes a secret from Google Secret Manager.
 
     Args:

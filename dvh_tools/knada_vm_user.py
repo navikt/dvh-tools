@@ -16,7 +16,7 @@ schema_dict = {
     "4": "DVH_TILLEGGSSTONADER",
 }
 
-def get_environ_input() -> tuple[str, str]:
+def get_environ_input():
     """Prompts the user for credentials and schema information.
 
     This function displays options for user IDs and schemas, then prompts the user
