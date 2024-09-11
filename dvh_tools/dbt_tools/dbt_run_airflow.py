@@ -1,5 +1,5 @@
 from dvh_tools.cloud_functions import get_gsm_secret
-from dbt_docs_publish import publish_docs
+from dvh_tools.dbt_tools import publish_docs
 import subprocess
 import os
 import time
