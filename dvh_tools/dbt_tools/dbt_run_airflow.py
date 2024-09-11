@@ -1,10 +1,8 @@
-from cloud_functions import get_gsm_secret
+from dvh_tools.cloud_functions import get_gsm_secret
 from dbt_docs_publish import publish_docs
-from google.cloud import secretmanager
 import subprocess
 import os
 import time
-import json
 
 # Constants for default values
 DEFAULT_TIMEZONE = "Europe/Oslo"
