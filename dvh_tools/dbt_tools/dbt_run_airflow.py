@@ -3,11 +3,15 @@ from dvh_tools.dbt_tools import publish_docs
 import subprocess
 import os
 import time
+import logging
 
 # Constants for default values
 DEFAULT_TIMEZONE = "Europe/Oslo"
 DEFAULT_ENVIRONMENT = "U"
 DEFAULT_DBT_BUILD_COMMAND = ["build"]
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
 
 def run_subprocess(command):
     """Run a subprocess command and return the output.
@@ -135,7 +139,7 @@ def run_dbt_command(
 
     # Configure environment variables
     configure_environment(secret_name, env, project_id_prod, project_id_dev)
-    print(f"Kjører mot {os.environ['DBT_DB_TARGET']} med {os.environ['DBT_ENV_SECRET_USER']}")
+    logging.info(f"Kjører mot {os.environ['DBT_DB_TARGET']} med {os.environ['DBT_ENV_SECRET_USER']}")
 
     # Determine dbt command
     dbt_command = os.environ.get("dbt_command", None)
@@ -145,20 +149,20 @@ def run_dbt_command(
     dbt_base_command = ["dbt", "--no-use-colors", "--log-format", "json"]
 
     # Run dbt deps first
-    print(f"Kjører dbt deps")
+    logging.info(f"Kjører dbt deps")
     output = run_subprocess(dbt_base_command + ["deps"])
-    print(output)
+    logging.info(output)
 
     # Run dbt command or docs generation
     make_docs = os.getenv("make_docs", "no")
     if make_docs == "no":
-        print(f"Kjører dbt-kommando: {dbt_command}")
+        logging.info(f"Kjører dbt-kommando: {dbt_command}")
         output = run_subprocess(dbt_base_command + dbt_command)
-        print(output)
+        logging.info(output)
     elif make_docs == "yes":
-        print("Genererer dbt docs")
+        logging.info("Genererer dbt docs")
         output = run_subprocess(dbt_base_command + ["docs", "generate"])
-        print(output)
+        logging.info(output)
         if publish_docs_param:
             publish_docs(publish_docs_param)
     else:
