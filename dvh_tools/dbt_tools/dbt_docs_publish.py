@@ -2,7 +2,7 @@ import os
 import requests
 
 
-def publish_docs(*, docs_url_project: str) -> None:
+def publish_docs(docs_url_project: str) -> None:
     """
     Publishes dbt documentation to `dbt.intern.nav.no`.
 
@@ -20,7 +20,6 @@ def publish_docs(*, docs_url_project: str) -> None:
         docs_url_project (str): The last segment of the URL path for the documentation site, e.g., 'dvh-aap'.
 
     Raises:
-        ValueError: If `docs_url_project` is None or an empty string.
         requests.RequestException: For issues during the HTTP PUT request.
 
     Examples:
@@ -29,13 +28,8 @@ def publish_docs(*, docs_url_project: str) -> None:
         Gathering target/catalog.json (2048 kB)
         Gathering target/index.html (512 kB)
         HTTP PUT status: 200 OK
-    """
-    if docs_url_project is None:
-        ...
-
-        
+    """     
     docs_url_complete = "https://dbt.intern.nav.no/docs/spenn/" + docs_url_project
-
     files = ["target/manifest.json", "target/catalog.json", "target/index.html"]
     multipart_form_data = {}
     for file_path in files:
@@ -47,7 +41,6 @@ def publish_docs(*, docs_url_project: str) -> None:
 
     res = requests.put(docs_url_complete, files=multipart_form_data)
     res.raise_for_status()
-
     print("HTTP PUT status: ", res.status_code, res.text)
     print()
 
