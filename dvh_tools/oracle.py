@@ -113,7 +113,7 @@ def sql_df_to_db(sql_query, secret, val_dict) -> None:
     oracle_client = _create_connection(secret)
     with oracle_client.cursor() as cursor:
         cursor.executemany(sql_query, val_dict, batcherrors=True, arraydmlrowcounts = False)
-        print(f'cursor rowcount: {cursor.rowcount})')
+        print(f'cursor rowcount: {cursor.rowcount}')
         for error in cursor.getbatcherrors():
             print("Error", error.message, "at row offset", error.offset)
         cursor.execute('commit')
