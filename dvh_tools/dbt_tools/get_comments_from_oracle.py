@@ -9,7 +9,7 @@ def get_comments_from_oracle(
         *,
         project_id=None,
         secret_name=None,
-        sources_yml_path="dbt/sources.yml"
+        sources_yml_path="dbt/models/sources.yml"
         ) -> None:
     """
     Reads source tables from `sources.yml`, connects to Oracle, retrieves comments, 
@@ -245,7 +245,7 @@ def get_comments_from_oracle(
     yml = "# IKKE ENDRE DENNE FILA!\n"
     yml += "# Den er autogenerert av dvh_tools.dbt.tools.get_comments_from_oracle\n"
     yml += "# Fjern/legg til kilder i dbt/sources.yml\n\n"
-    yml += """version: 2\n\nsources:\n"""
+    yml += """version: 2\nsources_with_comments:\n"""
     for schema, table_list in schema_table_dict.items():
         yml += f"  - name: {schema}\n"
         yml += f"    schema: {schema}\n"
