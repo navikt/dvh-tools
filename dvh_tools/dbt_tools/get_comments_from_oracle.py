@@ -239,7 +239,7 @@ def get_comments_from_oracle(
     print("Henter kolonnekommentarer fra Oracle")
     print("Lager 'sources_with_comments.yml'")
     column_comments_dict = {}
-    yml = "# IKKE ENDRE DENNE FILA!\n"
+    yml = "# OBS! Manuelle endringer i denne fila funker fint, men de blir overskrevet av å kjøre generate_comments.py!\n\n"
     yml += "# Den er autogenerert av dvh_tools.dbt.tools.get_comments_from_oracle\n"
     yml += "# Fjern/legg til kilder i dbt/sources.yml\n\n"
     yml += """version: 2\n\nsources:\n"""
