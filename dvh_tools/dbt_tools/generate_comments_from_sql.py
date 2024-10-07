@@ -122,7 +122,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     # Parse the files and update comments
     for f in yaml_files:
         # Skip "sources.yml"
-        if "/sources.yml" in f or "/sources_with_comments.yml" in f:
+        if "/sources.yml" in f or "\sources.yml" in f or "/sources_with_comments.yml" in f or "\sources_with_comments.yml" in f:
             continue
         with open(f, "r") as file:
             yml = dict(safe_load(file))
