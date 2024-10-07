@@ -1,7 +1,6 @@
 from pathlib import Path
 from yaml import safe_load
 from dvh_tools.oracle import db_read_to_df
-from dvh_tools.knada_vm_user import set_environ
 from dvh_tools.cloud_functions import get_gsm_secret
 
 
@@ -53,9 +52,7 @@ def get_comments_from_oracle(
     print("Setter hemmeligheter for Oracle tilkobling")
     if project_id is None or secret_name is None:
         raise ValueError("Mangler prosjekt-ID og/eller hemmelighetsnavn.")
-
     secret_dict = get_gsm_secret(project_id, secret_name)
-    set_environ()
 
     def find_project_root(current_path):
         """Recursively finds the root directory of a project by searching for a specific marker directory.
