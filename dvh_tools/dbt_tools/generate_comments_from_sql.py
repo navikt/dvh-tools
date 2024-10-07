@@ -74,7 +74,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     kolonner_kommentar = []
     for file in yaml_files:
         # Skip "sources.yml"
-        if "/sources.yml" in file or "/sources_with_comments.yml" in file:
+        if "/sources.yml" in file or "\\sources.yml" in file or "/sources_with_comments.yml" in file or "\\sources_with_comments.yml" in f:
             continue
         with open(file, "r") as f:
             yml = safe_load(f)
