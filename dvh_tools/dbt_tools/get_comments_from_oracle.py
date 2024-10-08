@@ -8,7 +8,7 @@ def get_comments_from_oracle(
         *,
         project_id=None,
         secret_name=None,
-        sources_yml_path="dbt/sources.yml"
+        sources_yml_path="dbt/models/sources.yml"
         ) -> None:
     """
     Reads source tables from `sources.yml`, connects to Oracle, retrieves comments, 
@@ -223,7 +223,6 @@ def get_comments_from_oracle(
 
     print("Henter tabellbeskrivelser fra Oracle")
     schema_table_dict = find_all_sources_from_yml()
-    src_table_descriptions = {}  # Comments for source models
     stg_table_descriptions = {}  # Comments for staging models 
     for schema, table_list in schema_table_dict.items():
         for table in table_list:
@@ -231,7 +230,6 @@ def get_comments_from_oracle(
             if source_description is None:
                 source_description = "(Ingen modellbeskrivelse i Oracle)"
             stg_table_descriptions[f"stg_{table}"] = f"Staging av {schema}.{table}, med original beskrivelse: {source_description}."
-            src_table_descriptions[table] = source_description
 
 
     # Generate the YAML-file `dbt/models/sources_with_comments.yml`
@@ -239,44 +237,28 @@ def get_comments_from_oracle(
     print("Henter kolonnekommentarer fra Oracle")
     print("Lager 'sources_with_comments.yml'")
     column_comments_dict = {}
-    yml = "# OBS! Manuelle endringer i denne fila funker fint, men de blir overskrevet av å kjøre generate_comments.py!\n\n"
-    yml += "# Den er autogenerert av dvh_tools.dbt.tools.get_comments_from_oracle\n"
-    yml += "# Fjern/legg til kilder i dbt/sources.yml\n\n"
-    yml += """version: 2\n\nsources:\n"""
     for schema, table_list in schema_table_dict.items():
-        yml += f"  - name: {schema}\n"
-        yml += f"    schema: {schema}\n"
-        yml += f"    tables:\n"
         for table in table_list:
-            yml += f"      - name: {table}\n"
-            yml += f"        description: '{src_table_descriptions[table]}'\n"
-            yml += f"        columns:\n"
             df_table_columns_comments = get_column_comments_from_oracle(schema, table)
             for _, row in df_table_columns_comments.iterrows():
-                yml += f"          - name: {row['column_name']}\n"
-                comments_replace = row['comments'].replace('\n',' | ')
-                yml += f"            description: '{comments_replace}'\n"
                 # Get unique column comments
                 column = row["column_name"]
                 comment = row["comments"]
                 if column not in column_comments_dict:
-                    column_comments_dict[column] = comment
+                    column_comments_dict[column] = comment.replace('\n', " | ")
     column_comments_dict = dict(sorted(column_comments_dict.items()))
     
     # Create `comments_source.yml` containing staging model and column comments
     print("Lager 'comments_source.yml'")
     alle_kommentarer = "{\n    source_column_comments: {\n"
     for column, comment in column_comments_dict.items():
-        comment_replace = comment.replace('\n', " | ")
-        alle_kommentarer += f"""        {column}: "{comment_replace}",\n"""
+        alle_kommentarer += f"""        {column}: "{comment}",\n"""
     alle_kommentarer += "    },\n\n    source_table_descriptions: {\n"
     for table, description in stg_table_descriptions.items():
         alle_kommentarer += f"""        {table}: "{description}",\n"""
     alle_kommentarer += "    }\n}\n"
 
     project_root = find_project_root(Path(__file__).resolve())
-    with open(project_root / "dbt/models/sources_with_comments.yml", "w", encoding="utf-8") as file:
-        file.write(yml)
     with open(project_root / "dbt/docs/comments_source.yml", "w", encoding="utf-8") as file:
         file.write(alle_kommentarer)
     print("Ferdig!")
