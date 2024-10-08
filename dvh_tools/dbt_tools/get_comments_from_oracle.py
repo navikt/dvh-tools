@@ -275,8 +275,8 @@ def get_comments_from_oracle(
     alle_kommentarer += "    }\n}\n"
 
     project_root = find_project_root(Path(__file__).resolve())
-    with open(project_root / "dbt/models/sources_with_comments.yml", "w") as file:
+    with open(project_root / "dbt/models/sources_with_comments.yml", "w", encoding="utf-8") as file:
         file.write(yml)
-    with open(project_root / "dbt/docs/comments_source.yml", "w") as file:
+    with open(project_root / "dbt/docs/comments_source.yml", "w", encoding="utf-8") as file:
         file.write(alle_kommentarer)
     print("Ferdig!")
