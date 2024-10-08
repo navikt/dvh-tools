@@ -18,8 +18,7 @@ def get_comments_from_oracle(
     1. Retrieves Oracle connection secrets from Google Secret Manager (GSM).
     2. Reads source table definitions from `sources.yml`.
     3. Fetches table and column comments from Oracle database.
-    4. Generates and updates `sources_with_comments.yml` with source and column descriptions.
-    5. Creates a `comments_source.yml` file with table and column comments.
+    4. Creates a `comments_source.yml` file with table and column comments.
 
     Assumes the script is run from within the dbt project folder, e.g., `dbt/docs/`,
     where the `comments_source.yml` (output) will be saved.
@@ -44,7 +43,6 @@ def get_comments_from_oracle(
         Finner sources.yml fra: dbt/sources.yml
         Henter tabellbeskrivelser fra Oracle
         Henter kolonnekommentarer fra Oracle
-        Lager 'sources_with_comments.yml'
         Lager 'comments_source.yml'
         Ferdig!
     """
@@ -232,10 +230,8 @@ def get_comments_from_oracle(
             stg_table_descriptions[f"stg_{table}"] = f"Staging av {schema}.{table}, med original beskrivelse: {source_description}."
 
 
-    # Generate the YAML-file `dbt/models/sources_with_comments.yml`
-    # and fill in the dictionary with unique column comments
+    # Fill in the dictionary with unique column comments
     print("Henter kolonnekommentarer fra Oracle")
-    print("Lager 'sources_with_comments.yml'")
     column_comments_dict = {}
     for schema, table_list in schema_table_dict.items():
         for table in table_list:
