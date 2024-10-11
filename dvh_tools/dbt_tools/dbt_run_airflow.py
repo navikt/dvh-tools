@@ -7,20 +7,34 @@ from dvh_tools.dbt_tools import publish_docs
 from dvh_tools.cloud_functions import get_gsm_secret
 
 DBT_BASE_COMMAND = ["--no-use-colors", "--log-format-file", "json"]
-
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 def dbt_run_airflow(
-        secret_name,
-        project_id_prod,
-        project_id_dev,
-        dbt_docs_navn="",
-        run_dbt_deps=False,
+    secret_name: str,
+    project_id_prod: str,
+    project_id_dev: str,
+    dbt_docs_navn="",
+    run_dbt_deps=False,
     ) -> None:
+    """Funksjon for å kjøre dbt i en Airflow DAG.
+    dbt-kommandoen blir angitt i miljøvariabelen 'dbt_command', satt i DAGen.
+    Target-miljøet blir angitt i miljøvariabelen 'env', satt i DAGen.
+
+    For fremtiden: Deler av eller hele dbt-loggen kan skrives til xcom.
+
+    Args:
+        secret_name (str): Secretnavn i GSM med dbt-credentials. Hentes med get_gsm_secret
+        project_id_prod (str): GCP-prosjekt for produksjon, for å hente riktig secret
+        project_id_dev (str): GCP-prosjekt for utvikling, for å hente riktig secret
+        dbt_docs_navn (str, optional): Prosjekt-delen av url til dbt docs. Defaults to "".
+        run_dbt_deps (bool, optional): Boolean for om 'dbt deps' skal kjøres før den angitte dbt-kommandoen. Defaults to False.
+    """    
     
     # henter dbt-kommando fra DAGen. Default er 'build'
     # eks på dbt_command i DAG er: 'build --select tag:daglig'
-    dbt_command = os.environ.get("dbt_command", 'build').split(" ")
-    logging.info(f"Kjører dbt med kommando: {dbt_command}. Først litt oppsett...")
+    dbt_command = os.environ.get("dbt_command", 'build')
+    logging.info(f"Kjører dbt med kommando 'dbt {dbt_command}'. Først litt oppsett...")
+    dbt_command = dbt_command.split(" ")
 
     # setter opp miljøvariabler
     os.environ["TZ"] = "Europe/Oslo"
