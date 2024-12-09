@@ -128,7 +128,7 @@ def update_yml_dict(*, yml_dict: dict, sql_dict: dict, yml_file: str) -> None:
                 model["columns"].append({"name": sql_col, "description": ""})
 
 
-def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None) -> None:
+def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None, verbose=False) -> None:
     sql_files = [f for f in files_and_dirs if f.endswith(".sql")]
     yml_file = [f for f in files_and_dirs if f.endswith(".yml")]
     skip_yml = ['sources.yml', 'sources_with_comments.yml']
@@ -137,7 +137,8 @@ def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None) ->
     sql_dict = {}  # Models as keys, columns as values
     if len(sql_files) > 0:
         for file in sql_files:
-            logger.info(f" Reading column names from sql file: {file}")
+            if verbose:
+                logger.info(f" Reading column names from sql file: {file}")
             file_name = file[:-4]  # Remove the .sql extension
             sql_path = dir_path / file
             with open(sql_path, "r", encoding="utf-8") as f:
@@ -165,7 +166,8 @@ def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None) ->
                 logger.info(f"No 'models' found in {yml_file[0]}. Please delete the file and rerun this program.")
                 return
             else:
-                logger.info(f'models section found in {yml_file[0]} file, updating column names with .sql files')
+                if verbose:
+                    logger.info(f'models section found in {yml_file[0]} file, updating column names with .sql files')
                 update_yml_dict(yml_dict=yml_dict, sql_dict=sql_dict, yml_file=yml_file[0])
                 yml_string = make_yml_string(yml_dict)
                 with open(yml_path, "w", encoding="utf-8") as f:
@@ -213,33 +215,35 @@ def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None) ->
             logger.error(f"Error writing YAML file {new_file_path}: {e}")
 
 
-def run_yml_update_in_dir(*, models_path: str):
+def run_yml_update_in_dir(*, models_path: str, verbose = False):
     all_model_dirs = [d for d in models_path.rglob('*') if d.is_dir()]
     for dir_path in all_model_dirs:
         files_and_dirs = os.listdir(dir_path)
-        update_yamls_from_sqls_in_dir(files_and_dirs, dir_path)
+        update_yamls_from_sqls_in_dir(files_and_dirs, dir_path, verbose)
 
+def find_project_root(current_path):
+    while current_path != current_path.parent:  # Continue until reaching the root of the filesystem
+        if (current_path / '.git').exists():
 
-def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs") -> None:
-    def find_project_root(current_path):
-        while current_path != current_path.parent:  # Continue until reaching the root of the filesystem
-            if (current_path / '.git').exists():
-                logger.info(f"Project root found at: {current_path}")
-                return current_path
-            current_path = current_path.parent
+            return current_path
+        current_path = current_path.parent
+
+def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs", verbose=False) -> None:
 
     # step 1: Finding project_root
     project_root = find_project_root(Path(__file__).resolve())
+    logger.info(f"Project root found at: {project_root}")
 
     # Step 2: Creating Path for models folder.
     models_path = (project_root / models_path).resolve()
-    logger.info(f"Project model path is: {models_path}")
+    if verbose:
+        logger.info(f"Project model path is: {models_path}")
 
     # Step 3: Recursive search for .yml files in models folder
     yaml_files = list(models_path.rglob("*.yml"))
 
     # Updates YAML-files (only column names -not description) according to SQL-files (i.e. adds/removes columns/models based on the SQL-filestructure)
-    run_yml_update_in_dir(models_path=models_path)
+    run_yml_update_in_dir(models_path=models_path, verbose=verbose)
 
     overskriv_yml_med_custom = True  # Overwrite the YAML files with custom_comments
 
@@ -327,12 +331,13 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     # Collect all column names and descriptions
     kolonner_navn = []
     kolonner_kommentar = []
-    logger.info(f'reading {len(yaml_files)} .yml files')
+    if verbose:
+        logger.info(f'reading {len(yaml_files)} .yml files')
     for file in yaml_files:
-        logger.info(f'reading:{Path(file).name}')
+        if verbose:
+            logger.info(f'reading:{Path(file).name}')
         # Skip "sources.yml"
         if os.path.basename(file) in ["sources.yml", "sources_with_comments.yml"]:
-            logger.info(f'skip reading {Path(file).name}')
         # if "/sources.yml" in file or "\\sources.yml" in file or "/sources_with_comments.yml" in file or "\\sources_with_comments.yml" in file:
             continue
         # Reading .yml files
@@ -346,7 +351,8 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
                 continue
             for t in tabeller:
                 t_name = t["name"]
-                logger.info(f'       model: {t_name}')
+                if verbose:
+                    logger.info(f'       model: {t_name}')
                 t_columns = t["columns"]
                 if "description" in t:
                     table_descriptions[t_name] = t["description"]
@@ -429,7 +435,8 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
 
         # Write each YAML-file
         with open(f, "w", encoding="utf-8") as file:
-            logger.info(f'writing:{Path(f).name}')
+            if verbose:
+                logger.info(f'writing:{Path(f).name}')
             file.write(make_yml_string(yml))
 
     if len(manglende_kommentarer) > 0:
@@ -438,5 +445,5 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
             logger.info("   ", c_name)
 
 
-if __name__ != "__main__":
+if __name__ == "__main__":
     generate_comments_from_sql()
