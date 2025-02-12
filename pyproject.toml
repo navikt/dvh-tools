@@ -1,27 +1,29 @@
+[build-system]
+requires = [ "poetry-core",]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "dvh-tools"
-version = "0.10.0"
+version = "0.10.4"
 description = ""
-authors = ["NAV", "DVH"]
+authors = [ "NAV", "DVH",]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "dvh_tools"}]
 repository = "https://github.com/navikt/dvh-tools"
+[[tool.poetry.packages]]
+include = "dvh_tools"
 
 [tool.poetry.dependencies]
-python = "^3.10"
-google-cloud-secret-manager = "^2.20.2"
-google-cloud-bigquery = "^3.25.0"
-oracledb = "^2.3.0"
-pandas = "^2.2.2"
-google-cloud-storage = "^2.18.2"
-loguru = "^0.7.2"
+python = "^3.12"
+google-cloud-secret-manager = "^2.22.1"
+google-cloud-bigquery = "^3.29.0"
+oracledb = "^2.5.1"
+pandas = "^2.2.3"
+google-cloud-storage = "^3.0.0"
+loguru = "^0.7.3"
+toml = "^0.10.2"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.2"
-black = "^24.8.0"
+pytest = "^8.3.4"
+black = "^25.1.0"
 pyyaml = "^6.0.2"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
