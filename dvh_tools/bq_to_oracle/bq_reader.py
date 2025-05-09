@@ -1,6 +1,7 @@
 from typing import Optional
 from google.cloud import bigquery
 from google.oauth2 import service_account
+from google.auth import impersonated_credentials, default
 
 
 class BQReader:
@@ -36,21 +37,69 @@ class BQReader:
         >>>     # Process each batch of rows here
         >>> print(f"Total rows read: {reader.total_rows_read}")
     """
-    def __init__(self, config, source_query, query_job_config: Optional[bigquery.QueryJobConfig] = None):
-        self.__config = config
+
+    def __init__(
+        self,
+        config: dict,
+        source_query: str,
+        config_type: str = "service_account",
+        query_job_config: Optional[bigquery.QueryJobConfig] = None,
+    ):
+        self.config_type = config_type
+
         self.client = bigquery.Client(
-            credentials=service_account.Credentials.from_service_account_info(self.__config)
+            credentials=self.get_credentials(config=config),
+            project=config["project_id"],
         )
         self._query_job = self.client.query(source_query, job_config=query_job_config)
 
         self._generator = self.__batch_generator()
         self.total_rows_read = 0
 
+    def get_credentials(self, config):
+        """Creates credentials for a BigQuery client based on the configuration type.
+
+        Returns:
+            service_account.Credentials or impersonated_credentials.Credentials: Credentials for the
+            BigQuery client, either service account or impersonated credentials.
+        """
+        if self.config_type == "service_account":
+            return self.get_credentials_from_service_account(config)
+        elif self.config_type == "impersonated":
+            return self.get_impersonated_credentials(config)
+        else:
+            raise ValueError(f"Unsupported config type: {self.config_type}")
+
+    @staticmethod
+    def get_credentials_from_service_account(config: dict):
+        """Creates service account credentials for a BigQuery client.
+
+        Returns:
+            service_account.Credentials: Service account credentials for the BigQuery client.
+        """
+        return service_account.Credentials.from_service_account_info(config)
+
+    @staticmethod
+    def get_impersonated_credentials(config: dict):
+        """Creates impersonated credentials for a BigQuery client.
+
+        Returns:
+            impersonated_credentials.Credentials: Impersonated credentials for the BigQuery client.
+        """
+        target_principal = config["target_principal"]
+        target_scopes = config.get(
+            "target_scopes", ["https://www.googleapis.com/auth/cloud-platform"]
+        )
+        source_credentials, _ = default()
+        return impersonated_credentials.Credentials(
+            source_credentials=source_credentials,
+            target_principal=target_principal,
+            target_scopes=target_scopes,
+        )
 
     def __iter__(self):
         """Returns the iterator object (self)."""
         return self
-
 
     def __next__(self):
         """Fetches the next batch of rows from the query results.
@@ -67,7 +116,6 @@ class BQReader:
             return rows
         else:
             raise StopIteration
-
 
     def __batch_generator(self):
         """A generator that yields pages of query results.
