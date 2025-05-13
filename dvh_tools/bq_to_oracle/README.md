@@ -23,7 +23,7 @@ table = {
     "target-table": "schema_name.oracle_table",
 }
 data_transfer = DataTransfer(
-    env,
+    config=env,
     source_query=table["source-query"],
     target_table=table["target-table"],
 )
@@ -31,4 +31,34 @@ data_transfer = DataTransfer(
 data_transfer.run(
     dry_run=False, datatypes=table.get("datatypes"), convert_lists=False
 )  # dry_run settes til True dersom man ikke ønsker å skrive til db
+```
+
+## env["gcp"] examples:
+
+### service_account
+```json
+{
+    "type": "",
+    "project_id": "",
+    "private_key_id": "",
+    "private_key": "",
+    "client_email": "",
+    "client_id": "",
+    "auth_uri": "",
+    "token_uri": "",
+    "auth_provider_x509_cert_url": "",
+    "client_x509_cert_url": "",
+    "universe_domain": ""
+}
+```
+### impersonated
+```json
+{
+    "project_id": "<prosjekt-id>",
+    "target_principal": "min-sa@<prosjekt-id>.iam.gserviceaccount.com",
+    "target_scopes": [
+        "https://www.googleapis.com/auth/cloud-platform"
+    ],
+}
+
 ```

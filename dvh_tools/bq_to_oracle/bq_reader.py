@@ -22,6 +22,8 @@ class BQReader:
         source_query (str): The SQL query to execute in BigQuery.
         query_job_config (Optional[bigquery.QueryJobConfig], optional): Optional configuration
             for the query job, such as setting query priority or specifying timeouts. Defaults to None.
+        config_type (str, optional): The type of configuration for BigQuery authentication.
+            must be either "service_account" or "impersonated".
 
     Methods:
         __iter__(): Returns the iterator object (self).
@@ -42,8 +44,8 @@ class BQReader:
         self,
         config: dict,
         source_query: str,
-        config_type: str = "service_account",
         query_job_config: Optional[bigquery.QueryJobConfig] = None,
+        config_type: str = "service_account",
     ):
         self.config_type = config_type
 
@@ -87,9 +89,7 @@ class BQReader:
             impersonated_credentials.Credentials: Impersonated credentials for the BigQuery client.
         """
         target_principal = config["target_principal"]
-        target_scopes = config.get(
-            "target_scopes", ["https://www.googleapis.com/auth/cloud-platform"]
-        )
+        target_scopes = config["target_scopes"]
         source_credentials, _ = default()
         return impersonated_credentials.Credentials(
             source_credentials=source_credentials,

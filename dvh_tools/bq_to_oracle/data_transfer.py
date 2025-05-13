@@ -46,10 +46,10 @@ class DataTransfer:
         source_query (str): The SQL query to execute in BigQuery.
         target_table (Optional[str], optional): The target table in Oracle where data will be written.
             Defaults to None.
-        config_type (str, optional): The type of configuration for BigQuery authentication. Defaults to
-            "service_account". Other option is "impersonated".
         query_job_config (Optional[QueryJobConfig], optional): Optional configuration for the BigQuery
             query job. Defaults to None.
+        bq_config_type (str, optional): The type of configuration for BigQuery authentication.
+            must be either "service_account" or "impersonated".
 
     Methods:
         run(batch_limit: Optional[int] = None, datatypes: Optional[dict] = None, convert_lists: bool = False):
@@ -60,14 +60,14 @@ class DataTransfer:
         self,
         config,
         source_query,
-        config_type="service_account",
         target_table=None,
         query_job_config: Optional[QueryJobConfig] = None,
+        bq_config_type="service_account",
     ):
         self.oracle_writer = OracleWriter(config["oracle"], target_table=target_table)
         self.bq_reader = BQReader(
             config["gcp"],
-            config_type=config_type,
+            config_type=bq_config_type,
             source_query=source_query,
             query_job_config=query_job_config,
         )
