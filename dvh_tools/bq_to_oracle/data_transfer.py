@@ -11,7 +11,7 @@ def get_secret_env(resource_name):
     """Retrieves and decodes a secret from Google Secret Manager.
 
     Args:
-        resource_name (str): The resource name of the secret in the format 
+        resource_name (str): The resource name of the secret in the format
                              `projects/{project_id}/secrets/{secret_id}/versions/latest`.
 
     Returns:
@@ -32,7 +32,7 @@ class DataTransfer:
     """Handles the transfer of data from BigQuery to an Oracle database.
 
     This class reads data from BigQuery using the `BQReader` class and writes it to an Oracle
-    database using the `OracleWriter` class. It supports optional batch processing and data 
+    database using the `OracleWriter` class. It supports optional batch processing and data
     conversion.
 
     Attributes:
@@ -48,28 +48,34 @@ class DataTransfer:
             Defaults to None.
         query_job_config (Optional[QueryJobConfig], optional): Optional configuration for the BigQuery
             query job. Defaults to None.
+        bq_config_type (str, optional): The type of configuration for BigQuery authentication.
+            must be either "service_account" or "impersonated".
 
     Methods:
         run(batch_limit: Optional[int] = None, datatypes: Optional[dict] = None, convert_lists: bool = False):
             Executes the data transfer process, reading from BigQuery and writing to Oracle.
     """
+
     def __init__(
         self,
         config,
         source_query,
         target_table=None,
         query_job_config: Optional[QueryJobConfig] = None,
+        bq_config_type="service_account",
     ):
-        self.__config = config
-        self.oracle_writer = OracleWriter(self.__config["oracle"], target_table=target_table)
+        self.oracle_writer = OracleWriter(config["oracle"], target_table=target_table)
         self.bq_reader = BQReader(
-            self.__config["gcp"], source_query=source_query, query_job_config=query_job_config
+            config["gcp"],
+            config_type=bq_config_type,
+            source_query=source_query,
+            query_job_config=query_job_config,
         )
 
     def run(self, batch_limit=None, datatypes=None, convert_lists=False) -> None:
         """Reads data from BigQuery and writes it to an Oracle database.
 
-        This method iterates over the batches of data fetched from BigQuery, writes each batch to 
+        This method iterates over the batches of data fetched from BigQuery, writes each batch to
         the Oracle database, and performs optional data conversion. The process stops after the
         specified batch limit if provided.
 

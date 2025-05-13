@@ -52,18 +52,18 @@ class OracleWriter:
         >>> writer.write_batch(batch, convert_lists=True)
         >>> writer.cleanup()
     """
+
     def __init__(self, config, target_table=None):
-        self.__config = config
+        # self.__config = config
         self.con = connect(
-            user=self.__config["DB_USER"],
-            password=self.__config["DB_PASSWORD"],
-            dsn=self.__config["DB_DSN"],
+            user=config["DB_USER"],
+            password=config["DB_PASSWORD"],
+            dsn=config["DB_DSN"],
         )
-        self.target_table = target_table or self.__config["target-table"]
+        self.target_table = target_table or config["target-table"]
         self.insert_string = None
         self.total_rows_inserted = 0
         self.execution_time = self.get_oracle_sysdate()
-
 
     def write_batch(self, batch, convert_lists=False, datatypes={}) -> None:
         """Inserts a batch of data into the target table.
@@ -107,7 +107,6 @@ class OracleWriter:
                 raise RuntimeError(e)
         self.con.commit()
 
-
     def cleanup(self, is_healthy=True) -> None:
         """Commits or rolls back the current transaction and closes the connection.
 
@@ -121,7 +120,6 @@ class OracleWriter:
             self.con.rollback()
         self.con.close()
 
-
     def prepare_table(self):
         """Truncates the target table to prepare it for new data.
 
@@ -131,7 +129,6 @@ class OracleWriter:
         with self.con.cursor() as cursor:
             cursor.execute(f"truncate table {self.target_table}")
         return True
-
 
     def get_oracle_sysdate(self):
         """Retrieves the current system date from the Oracle database.
@@ -143,7 +140,6 @@ class OracleWriter:
             cursor.execute(f"select sysdate from dual")
             row = cursor.fetchone()
         return row[0]
-
 
     def create_insert_string(self, batch):
         """Creates the SQL insert statement template based on the batch's column names.
@@ -161,7 +157,6 @@ class OracleWriter:
         values({', '.join([f':{col}' for col in column_names])})
         """
         return self.insert_string
-
 
     @staticmethod
     def convert_lists_and_dicts_in_batch_to_json(batch: list) -> None:
@@ -187,7 +182,6 @@ class OracleWriter:
                 if isinstance(ele[key], dict):
                     ele[key] = json.dumps(ele[key])
             batch[i] = ele
-
 
     @staticmethod
     def add_execution_time_to_batch(time, batch: list) -> None:
