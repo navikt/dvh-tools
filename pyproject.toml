@@ -15,15 +15,15 @@ include = "dvh_tools"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-google-cloud-secret-manager = "^2.23.3"
-google-cloud-bigquery = "^3.32.0"
-oracledb = "^3.1.1"
-pandas = "^2.2.3"
-google-cloud-storage = "^3.1.0"
+google-cloud-secret-manager = "^2.24.0"
+google-cloud-bigquery = "^3.35.1"
+oracledb = "^3.3.0"
+pandas = "^2.3.1"
+google-cloud-storage = "^3.2.0"
 loguru = "^0.7.3"
 toml = "^0.10.2"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.4"
+pytest = "^8.4.1"
 black = "^25.1.0"
 pyyaml = "^6.0.2"
