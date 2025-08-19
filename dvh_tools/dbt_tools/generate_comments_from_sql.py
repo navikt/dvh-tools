@@ -223,7 +223,7 @@ def run_yml_update_in_dir(*, models_path: str):
 def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs") -> None:
     def find_project_root(current_path):
         while current_path != current_path.parent:  # Continue until reaching the root of the filesystem
-            if (current_path / 'dbt').exists():
+            if (current_path / '.git').exists():
                 logger.info(f"Project root found at: {current_path}")
                 return current_path
             current_path = current_path.parent
