@@ -23,7 +23,7 @@ class BQReader:
         query_job_config (Optional[bigquery.QueryJobConfig], optional): Optional configuration
             for the query job, such as setting query priority or specifying timeouts. Defaults to None.
         config_type (str, optional): The type of configuration for BigQuery authentication.
-            must be either "service_account" or "impersonated".
+            must be either "service_account", "impersonated", or "adc".
 
     Methods:
         __iter__(): Returns the iterator object (self).
@@ -62,13 +62,16 @@ class BQReader:
         """Creates credentials for a BigQuery client based on the configuration type.
 
         Returns:
-            service_account.Credentials or impersonated_credentials.Credentials: Credentials for the
-            BigQuery client, either service account or impersonated credentials.
+            service_account.Credentials, impersonated_credentials.Credentials or application default credentials (adc):
+            Credentials for the BigQuery client, either service account or impersonated credentials.
         """
         if self.config_type == "service_account":
             return self.get_credentials_from_service_account(config)
         elif self.config_type == "impersonated":
             return self.get_impersonated_credentials(config)
+        elif self.config_type == "adc":
+            credentials, _ = default()
+            return credentials
         else:
             raise ValueError(f"Unsupported config type: {self.config_type}")
 
