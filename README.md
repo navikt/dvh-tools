@@ -13,11 +13,11 @@ Strukturen er som følger:
 ---
 
 ## Installasjon 💻
-Du kan installere pakken ved å bruke `pip` kommando:
+Du kan installere pakken ved å bruke `uv` kommando:
 
 ```shell
-pip install git+https://github.com/navikt/dvh_tools.git
-pip install dvh-tools
+uv add git+https://github.com/navikt/dvh_tools.git
+uv add dvh-tools
 ```
 
 # Publisere ny versjon til PyPi

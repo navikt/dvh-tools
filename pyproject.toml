@@ -1,29 +1,43 @@
-[build-system]
-requires = [ "poetry-core",]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry]
+[project]
 name = "dvh-tools"
-version = "0.12.3"
+version = "0.12.4"
 description = ""
-authors = [ "NAV", "DVH",]
-license = "MIT"
 readme = "README.md"
-repository = "https://github.com/navikt/dvh-tools"
-[[tool.poetry.packages]]
-include = "dvh_tools"
+license = "MIT"
+authors = [
+    { name = "NAV" },
+    { name = "DVH" },
+]
+urls = {repository = "https://github.com/navikt/dvh-tools"}
 
-[tool.poetry.dependencies]
-python = "^3.12"
-google-cloud-secret-manager = "^2.24.0"
-google-cloud-bigquery = "^3.35.1"
-oracledb = ">=3.0.0 <4"
-pandas = "^2.3.1"
-google-cloud-storage = "^3.2.0"
-loguru = "^0.7.3"
-toml = "^0.10.2"
+requires-python = ">=3.12"
+dependencies = [
+    "google-cloud-secret-manager>=2.24.0",
+    "google-cloud-bigquery>=3.35.1",
+    "oracledb>=3.0.0,<4",
+    "pandas>=2.3.1",
+    "google-cloud-storage>=3.2.0",
+    "loguru>=0.7.3",
+    "toml>=0.10.2",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.1"
-black = "^25.1.0"
-pyyaml = "^6.0.2"
+
+
+
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "black>=25.1.0",
+    "pyyaml>=6.0.2",
+]
+
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+python-downloads = "never"
+package = true
+exclude-newer = "14 days"
