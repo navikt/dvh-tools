@@ -21,10 +21,6 @@ dependencies = [
     "toml>=0.10.2",
 ]
 
-
-
-
-
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
@@ -41,3 +37,14 @@ build-backend = "setuptools.build_meta"
 python-downloads = "never"
 package = true
 exclude-newer = "14 days"
+
+# Due to vulnerabilities, some dependencies need to be overridden to a specific version.
+# This also might require excluding those dependencies from the dependency cooldown.
+override-dependencies = [
+    # CVE-2026-26007
+    "cryptography>=46.0.5",
+]
+
+[tool.uv.exclude-newer-package]
+# CVE-2026-26007
+cryptography = "0 days"

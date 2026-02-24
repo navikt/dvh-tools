@@ -20,6 +20,9 @@ updates:
     cooldown:
       default-days: 14
     groups:
-      pip:
+      uv:
+        applies-to:
+          - version-updates
+          - security-updates
         patterns:
           - "*"

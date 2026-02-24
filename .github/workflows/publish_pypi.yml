@@ -1,9 +1,8 @@
 name: Release
 
 on:
-  workflow_dispatch:
-#  release:
-#    types: [published]
+  release:
+    types: [published]
 
 jobs:
   publish-pypi:
@@ -11,7 +10,7 @@ jobs:
     permissions:
       id-token: write
     env:
-      TAG: 0.0.1 #${{ github.ref_name }}
+      TAG: ${{ github.ref_name }}
     steps:
       - name: Validate tag format
         run: |
@@ -41,4 +40,4 @@ jobs:
 
       # authentication via https://docs.pypi.org/trusted-publishers/
       - name: Publish
-        run: uv publish --trusted-publishing always --dry-run
+        run: uv publish --trusted-publishing always
