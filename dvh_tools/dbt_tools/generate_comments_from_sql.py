@@ -2,8 +2,11 @@ import io
 from pathlib import Path
 from yaml import safe_load, dump
 import os
-from loguru import logger
 import sys
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def make_yml_string(data):
@@ -436,7 +439,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     if len(manglende_kommentarer) > 0:
         logger.info("Mangler følgende kolonner i comments_custom.yml:")
         for c_name in manglende_kommentarer:
-            logger.info("   ", c_name)
+            logger.info(f"   {c_name}")
 
 
 if __name__ != "__main__":
