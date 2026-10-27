@@ -35,4 +35,4 @@ build-backend = "setuptools.build_meta"
 [tool.uv]
 python-downloads = "never"
 package = true
-exclude-newer = "14 days"
+# exclude-newer = "14 days"
