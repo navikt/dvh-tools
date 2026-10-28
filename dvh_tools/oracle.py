@@ -6,9 +6,11 @@ import pandas as pd
 def _create_connection(secret = None):
     """Creates and returns an Oracle database connection.
 
-    This function establishes a connection to an Oracle database using credentials and DSN 
-    either provided through environment variables or a secret dictionary. If the `secret` 
-    argument is provided, its values are used; otherwise, environment variables are used.
+    This function establishes a connection to an Oracle database using credentials and DSN
+    either provided through environment variables or a secret dictionary. Knast is used
+    when DBT_DB_TARGET is 'knast', or when no target, secret, or DB_DSN is supplied
+    and all Knast connection settings are present. Otherwise, existing credential
+    selection is preserved.
 
     Args:
         secret (dict, optional): A dictionary containing the database credentials and DSN.
@@ -21,7 +23,21 @@ def _create_connection(secret = None):
         >>> secret = {"DB_USER": "username", "DB_PASSWORD": "password", "DB_DSN": "dsn"}
         >>> conn = _create_connection(secret)
     """
-    if secret:
+    target = os.environ.get("DBT_DB_TARGET", "").strip().lower()
+    knast_variables = ("DBT_ENV_SECRET_USER", "DBT_DB_HOST", "DBT_DB_PORT", "DBT_ENV_SERVICE")
+    missing_knast_variables = [name for name in knast_variables if not os.environ.get(name)]
+    use_knast = target == "knast" or (
+        not target and not secret and not os.environ.get("DB_DSN") and not missing_knast_variables
+    )
+
+    if use_knast:
+        if missing_knast_variables:
+            raise ValueError("Missing Knast connection settings: " + ", ".join(missing_knast_variables))
+        oracle_client = oracledb.connect(
+            user=os.environ["DBT_ENV_SECRET_USER"],
+            dsn=f"{os.environ['DBT_DB_HOST']}:{os.environ['DBT_DB_PORT']}/{os.environ['DBT_ENV_SERVICE']}",
+        )
+    elif secret:
         oracle_client = oracledb.connect(
             user=os.environ.get("DBT_ENV_SECRET_USER", secret.get("DB_USER", None)),
             password=os.environ.get("DBT_ENV_SECRET_PASS", secret.get("DB_PASSWORD", None)),
@@ -39,7 +55,7 @@ def _create_connection(secret = None):
 def db_sql_run(sql_query, secret) -> None:
     """Executes an SQL query against the database.
 
-    This function connects to the Oracle database using the provided secret dictionary, 
+    This function connects to the Oracle database using the provided secret dictionary,
     executes the given SQL query, and commits the transaction.
 
     Args:
@@ -61,7 +77,7 @@ def db_sql_run(sql_query, secret) -> None:
 def db_read_to_df(sql_query, secret = None, prefetch_rows = 1000):
     """Executes an SQL query and returns the result as a pandas DataFrame.
 
-    This function connects to the Oracle database using the provided secret dictionary or 
+    This function connects to the Oracle database using the provided secret dictionary or
     environment variables, executes the SQL query, and returns the results as a DataFrame.
 
     Args:
@@ -71,7 +87,7 @@ def db_read_to_df(sql_query, secret = None, prefetch_rows = 1000):
         prefetch_rows (int, optional): Number of rows to prefetch for the cursor. Defaults to 1000.
 
     Returns:
-        df (pd.DataFrame): A DataFrame containing the query results, with columns named after 
+        df (pd.DataFrame): A DataFrame containing the query results, with columns named after
         the SQL query's result columns.
 
     Examples:
