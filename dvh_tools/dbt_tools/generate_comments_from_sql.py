@@ -1,48 +1,60 @@
-import io
-from pathlib import Path
-from yaml import safe_load, dump
+import logging
 import os
 import sys
-import logging
+from pathlib import Path
+
+from yaml import dump, safe_dump, safe_load
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-def make_yml_string(data):
-    # Start with the version
-    yml_string = f"version: {data.get('version', 2)}\n\nmodels:\n"
+def missing_model_comments(data, yml_file, *, require_descriptions=True):
+    issues = []
+    if not isinstance(data, dict) or not any(key in data for key in ("models", "snapshots")):
+        return [f"{yml_file}: missing or empty 'models' list"]
+    for resource_key in ("models", "snapshots"):
+        if resource_key not in data:
+            continue
+        resources = data[resource_key]
+        if not isinstance(resources, list) or not resources:
+            issues.append(f"{yml_file}: missing or empty '{resource_key}' list")
+            continue
+        resource_type = "snapshot" if resource_key == "snapshots" else "model"
+        for resource_index, resource in enumerate(resources, start=1):
+            if not isinstance(resource, dict):
+                issues.append(f"{yml_file}: {resource_type} entry #{resource_index} must be a mapping")
+                continue
+            resource_name = resource.get("name") or f"<{resource_type} #{resource_index}>"
+            location = f"{yml_file}: {resource_type} '{resource_name}'"
+            if not isinstance(resource.get("name"), str) or not resource["name"].strip():
+                issues.append(f"{yml_file}: {resource_type} entry #{resource_index} is missing 'name'")
+            description = resource.get("description")
+            if require_descriptions and (not isinstance(description, str) or not description.strip()):
+                issues.append(f"{location} is missing a non-empty description")
+            if not isinstance(resource.get("columns"), list):
+                issues.append(f"{location} is missing a 'columns' list")
+                continue
+            for column_index, column in enumerate(resource["columns"], start=1):
+                if not isinstance(column, dict):
+                    issues.append(f"{location}, column entry #{column_index} must be a mapping")
+                    continue
+                column_name = column.get("name") or f"<column #{column_index}>"
+                if not isinstance(column.get("name"), str) or not column["name"].strip():
+                    issues.append(f"{location}, column entry #{column_index} is missing 'name'")
+                description = column.get("description")
+                if require_descriptions and (not isinstance(description, str) or not description.strip()):
+                    issues.append(f"{location}, column '{column_name}' is missing a non-empty description")
+    return issues
 
-    # Iterate over models
-    for model in data['models']:
-        # Add model name and description
-        yml_string += f"  - name: {model['name']}\n"
-        yml_string += f"    description: '{model['description']}'\n"
 
-        # Columns section
-        yml_string += "    columns:\n"
-
-        for column in model['columns']:
-            # Add column name and description
-            yml_string += f"      - name: {column['name']}\n"
-            yml_string += f"        description: '{column['description']}'\n"
-
-            # Check and add data_tests
-            if 'data_tests' in column:
-                yml_string += "        data_tests:\n"
-                for test in column['data_tests']:
-                    if isinstance(test, str):
-                        yml_string += f"          - {test}\n"
-                    elif isinstance(test, dict):
-                        for key, value in test.items():
-                            yml_string += f"          - {key}:\n"
-                            if isinstance(value, dict):
-                                for sub_key, sub_value in value.items():
-                                    yml_string += f"              {sub_key}: '{sub_value}'\n"
-                            else:
-                                yml_string += f"              {value}\n"
-
-    return yml_string
+def make_yml_string(data, yml_file="<model YAML>"):
+    issues = missing_model_comments(data, yml_file)
+    if issues:
+        for issue in issues:
+            logger.error(issue)
+        raise ValueError("Missing model documentation. Fix the reported fields and rerun; this YAML was not written.")
+    return safe_dump({"version": data.get("version", 2), **data}, sort_keys=False, allow_unicode=True)
 
 
 def find_sql_columns(file):
@@ -131,96 +143,53 @@ def update_yml_dict(*, yml_dict: dict, sql_dict: dict, yml_file: str) -> None:
                 model["columns"].append({"name": sql_col, "description": ""})
 
 
-def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path: str = None) -> None:
+def update_yamls_from_sqls_in_dir(files_and_dirs: list, dir_path=None, *, yaml_updates=None) -> None:
+    if dir_path is None:
+        raise ValueError("A model directory path is required.")
+    dir_path = Path(dir_path)
     sql_files = [f for f in files_and_dirs if f.endswith(".sql")]
     yml_file = [f for f in files_and_dirs if f.endswith(".yml")]
     skip_yml = ['sources.yml', 'sources_with_comments.yml']
     yml_file = [f for f in yml_file if f not in skip_yml]
 
-    sql_dict = {}  # Models as keys, columns as values
-    if len(sql_files) > 0:
-        for file in sql_files:
-            logger.info(f" Reading column names from sql file: {file}")
-            file_name = file[:-4]  # Remove the .sql extension
-            sql_path = dir_path / file
-            with open(sql_path, "r", encoding="utf-8") as f:
-                model_columns = find_sql_columns(sql_path)
-                sql_dict[file_name] = model_columns
-
     if yml_file:
-        # Build the full path to the YAML file
         yml_path = dir_path / yml_file[0]
-        # Load the YAML file
-        try:
-            with open(yml_path, "r", encoding='utf-8') as f:
-                yml_dict = safe_load(f)
-        except FileNotFoundError:
-            logger.info(f'File not found: {yml_file[0]}')
-            raise
-        except Exception as e:
-            logger.info(f'Error reading YAML file {yml_file[0]: {e}}')
-            raise
-
-        # Handle the case of an empty or invalid YAML file
-        if yml_dict:
-            # Check if the 'models' section exists
-            if "models" not in yml_dict or not yml_dict["models"]:
-                logger.info(f"No 'models' found in {yml_file[0]}. Please delete the file and rerun this program.")
+        with open(yml_path, "r", encoding="utf-8") as file:
+            yml_dict = safe_load(file)
+        if missing_model_comments(yml_dict, yml_path, require_descriptions=False):
+            if yaml_updates is not None:
+                yaml_updates[yml_path] = yml_dict
                 return
-            else:
-                logger.info(f'models section found in {yml_file[0]} file, updating column names with .sql files')
-                update_yml_dict(yml_dict=yml_dict, sql_dict=sql_dict, yml_file=yml_file[0])
-                yml_string = make_yml_string(yml_dict)
-                with open(yml_path, "w", encoding="utf-8") as f:
-                    f.write(yml_string)
-        else:
-            logger.info(f"The YAML file {yml_file[0]} is empty or invalid. Deleting the file.")
-            # Delete the empty or invalid YAML file
-            try:
-                yml_path.unlink()  # Deletes the file
-                logger.info(f"Deleted empty or invalid YAML file: {yml_file[0]}")
+            make_yml_string(yml_dict, str(yml_path))
+    elif sql_files:
+        yml_path = Path(dir_path) / f"_{Path(dir_path).name}_models.yml"
+        yml_dict = {"version": 2, "models": []}
+    else:
+        return
 
-                # Remove the file from the yml_file list
-                yml_file = [f for f in yml_file if f != yml_file[0]]
-            except Exception as e:
-                logger.error(f"Error deleting YAML file {yml_file[0]}: {e}")
+    if sql_files and "models" in yml_dict:
+        snapshot_names = {snapshot["name"] for snapshot in yml_dict.get("snapshots", [])}
+        sql_dict = {}
+        for file in sql_files:
+            if file[:-4] in snapshot_names:
+                continue
+            logger.info(f"Reading column names from SQL file: {dir_path / file}")
+            sql_dict[file[:-4]] = find_sql_columns(dir_path / file)
+        update_yml_dict(yml_dict=yml_dict, sql_dict=sql_dict, yml_file=str(yml_path))
 
-    # If no YAML file is present but SQL files are found
-
-    # logger.info(f'{len(yml_file)}')
-    if len(yml_file) == 0 and len(sql_files) > 0:
-        logger.info(f"Creating the missing yaml file in {dir_path}")
-
-        # Create a dummy YAML structure
-        yml_dict = {"version": "2", "models": [{"name": "dummy", "columns": [{"name": "aarmnd"}]}]}
-
-        # Update the dummy YAML structure with the provided SQL data
-        update_yml_dict(yml_dict=yml_dict, sql_dict=sql_dict, yml_file="dummy.yml")
-
-        # Convert the dictionary to a YAML-formatted string
-        yml_string = make_yml_string(yml_dict)
-
-        # Construct the new file name
-        new_file_name = f"_{Path(dir_path).name}_models.yml"
-        # new_file_name = "/_" + dir_path.split("/")[-1] + "_models.yml"
-
-        # Create the full path for the new YAML file (Path handles platform-specific separators)
-        new_file_path = Path(dir_path) / new_file_name
-
-        try:
-            # Write the string to the new YAML file
-            with open(new_file_path, "w", encoding="utf-8") as file:
-                file.write(yml_string)
-            logger.info(f"YAML file successfully created: {new_file_path}")
-        except Exception as e:
-            logger.error(f"Error writing YAML file {new_file_path}: {e}")
+    if yaml_updates is not None:
+        yaml_updates[yml_path] = yml_dict
+        return
+    yml_string = make_yml_string(yml_dict, str(yml_path))
+    with open(yml_path, "w", encoding="utf-8") as file:
+        file.write(yml_string)
 
 
-def run_yml_update_in_dir(*, models_path: str):
-    all_model_dirs = [d for d in models_path.rglob('*') if d.is_dir()]
+def run_yml_update_in_dir(*, models_path, yaml_updates=None):
+    all_model_dirs = [models_path] + sorted(d for d in models_path.rglob('*') if d.is_dir())
     for dir_path in all_model_dirs:
         files_and_dirs = os.listdir(dir_path)
-        update_yamls_from_sqls_in_dir(files_and_dirs, dir_path)
+        update_yamls_from_sqls_in_dir(files_and_dirs, dir_path, yaml_updates=yaml_updates)
 
 
 def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs") -> None:
@@ -238,12 +207,26 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
     # Step 2: Creating Path for models folder.
     models_path = (project_root / models_path).resolve()
     logger.info(f"Project model path is: {models_path}")
+    if not models_path.is_dir():
+        logger.error(f"Models directory not found: {models_path}. Check models_path; no model YAML files were written.")
+        sys.exit(1)
 
-    # Step 3: Recursive search for .yml files in models folder
-    yaml_files = list(models_path.rglob("*.yml"))
-
-    # Updates YAML-files (only column names -not description) according to SQL-files (i.e. adds/removes columns/models based on the SQL-filestructure)
-    run_yml_update_in_dir(models_path=models_path)
+    yaml_updates = {}
+    run_yml_update_in_dir(models_path=models_path, yaml_updates=yaml_updates)
+    for yaml_file in models_path.rglob("*.yml"):
+        if yaml_file.name in ["sources.yml", "sources_with_comments.yml"] or yaml_file in yaml_updates:
+            continue
+        with open(yaml_file, "r", encoding="utf-8") as file:
+            yaml_updates[yaml_file] = safe_load(file)
+    yaml_files = sorted(yaml_updates)
+    structure_issues = []
+    for yaml_file, data in yaml_updates.items():
+        structure_issues.extend(missing_model_comments(data, yaml_file, require_descriptions=False))
+    if structure_issues:
+        for issue in structure_issues:
+            logger.error(issue)
+        logger.error("Validation failed. No model YAML files were written. Fix the reported model structure and rerun.")
+        sys.exit(1)
 
     overskriv_yml_med_custom = True  # Overwrite the YAML files with custom_comments
 
@@ -275,6 +258,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
         except Exception as e:
             logger.info(e)
             logger.info(f"Kunne ikke lese '{file_path}'.")
+            sys.exit(1)
     else:
         # If the file doesn't exist, create it with default content
         try:
@@ -286,6 +270,7 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
         except Exception as e:
             logger.info(e)
             logger.info(f"Kunne ikke opprette '{file_path}'.")
+            sys.exit(1)
 
     """
     Reading comments_source.yml
@@ -339,35 +324,18 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
             logger.info(f'skip reading {Path(file).name}')
         # if "/sources.yml" in file or "\\sources.yml" in file or "/sources_with_comments.yml" in file or "\\sources_with_comments.yml" in file:
             continue
-        # Reading .yml files
-        with io.open(file, "r", encoding="utf-8") as f:
-            yml = safe_load(f)
-
-            try:
-                tabeller = yml["models"]
-            except KeyError:
-                logger.info(f"KeyError on 'models' in {file}")
-                continue
-            for t in tabeller:
-                t_name = t["name"]
-                logger.info(f'       model: {t_name}')
-                t_columns = t["columns"]
-                if "description" in t:
-                    table_descriptions[t_name] = t["description"]
-                for c in t_columns:
-                    c_name = c["name"]
-                    try:
-                        c_description = c["description"]
-                    except KeyError:
-                        logger.info(f"{c_name} har ikke felt for beskrivelse i {t_name}")
-                        continue
-                    if c_description is None or c_description == "":
-                        continue
-                    if c_name in kolonner_navn:
-                        continue  # Only get unique column names and first description
-                    else:
-                        kolonner_navn.append(c_name)
-                        kolonner_kommentar.append(c_description)
+        yml = yaml_updates[file]
+        for model in yml.get("models", []) + yml.get("snapshots", []):
+            model_name = model["name"]
+            description = model.get("description")
+            if isinstance(description, str) and description.strip():
+                table_descriptions[model_name] = description
+            for column in model["columns"]:
+                column_name = column["name"]
+                description = column.get("description")
+                if isinstance(description, str) and description.strip() and column_name not in kolonner_navn:
+                    kolonner_navn.append(column_name)
+                    kolonner_kommentar.append(description)
     yml_column_comments = dict(zip(kolonner_navn, kolonner_kommentar))
 
     # custom > yml > source
@@ -384,62 +352,37 @@ def generate_comments_from_sql(*, models_path="dbt/models", docs_path="dbt/docs"
         column_descriptions[col] = desc
     table_descriptions.update(custom_table_descriptions)
 
-    manglende_kommentarer = []
-    # Parse the files and update comments
-    for f in yaml_files:
-        # Skip "sources.yml"
-        if os.path.basename(f) in ["sources.yml", "sources_with_comments.yml"]:
-            # if "/sources.yml" in f or "\\sources.yml" in f or "/sources_with_comments.yml" in f or "\\sources_with_comments.yml" in f:
-            continue
-        with open(f, "r", encoding="utf-8") as file:
-            yml = dict(safe_load(file))
-            yml_models = False
-            try:
-                yml["models"].sort(key=lambda x: x["name"])
-                tabeller = yml["models"]
-                yml_models = True
-            except KeyError:
-                logger.info(f"Ingen 'models' i .yml {f}")
-                continue
-            if yml_models:
-                # Loop over DBT models in the YAML file
-                for i in range(len(tabeller)):
-                    t_name = tabeller[i]["name"]
-                    t_columns = tabeller[i]["columns"]
-                    if "description" in tabeller[i]:
-                        t_desc = tabeller[i]["description"]
-                        if t_desc.strip() != table_descriptions[t_name].strip():
-                            logger.info(f"Endrer beskrivelse for modell {t_name}")
-                            yml["models"][i]["description"] = table_descriptions[t_name]
-                    # Loop over columns in a model
-                    for c in range(len(t_columns)):
-                        c_name = t_columns[c]["name"]
-                        overskriv_beskrivelse = False
-                        if not endre_bare_tomme_kommentarer:
-                            overskriv_beskrivelse = True
-                        try:
-                            c_desc = t_columns[c]["description"]
-                        except KeyError:  # No description for the column
-                            overskriv_beskrivelse = True
-                            c_desc = None
-                        if c_name not in column_descriptions:
-                            overskriv_beskrivelse = False  # Cannot overwrite
-                            if c_name not in manglende_kommentarer:
-                                manglende_kommentarer.append(c_name)
-                        if overskriv_beskrivelse and c_desc != column_descriptions[c_name]:
-                            logger.info(f"Endrer beskrivelse for {c_name} i {t_name}")
-                            oppdatert_desc = column_descriptions[c_name]
-                            yml["models"][i]["columns"][c]["description"] = oppdatert_desc
+    issues = []
+    for yaml_file, data in yaml_updates.items():
+        for resource_key in ("models", "snapshots"):
+            if resource_key in data:
+                data[resource_key].sort(key=lambda resource: resource["name"])
+        for model in data.get("models", []) + data.get("snapshots", []):
+            model_name = model["name"]
+            if model_name in table_descriptions:
+                model["description"] = table_descriptions[model_name]
+            for column in model["columns"]:
+                column_name = column["name"]
+                if column_name in column_descriptions and (
+                    not endre_bare_tomme_kommentarer or not column.get("description")
+                ):
+                    column["description"] = column_descriptions[column_name]
+        issues.extend(missing_model_comments(data, yaml_file))
+    if issues:
+        for issue in issues:
+            logger.error(issue)
+        logger.error(
+            "Validation failed. No model YAML files were written. "
+            "Add descriptions in the reported YAML files or in comments_custom.yml "
+            "(custom_table_descriptions / custom_column_comments), then rerun."
+        )
+        sys.exit(1)
 
-        # Write each YAML-file
-        with open(f, "w", encoding="utf-8") as file:
-            logger.info(f'writing:{Path(f).name}')
-            file.write(make_yml_string(yml))
-
-    if len(manglende_kommentarer) > 0:
-        logger.info("Mangler følgende kolonner i comments_custom.yml:")
-        for c_name in manglende_kommentarer:
-            logger.info(f"   {c_name}")
+    formatted_yamls = {path: make_yml_string(data, str(path)) for path, data in yaml_updates.items()}
+    for yaml_file, content in formatted_yamls.items():
+        with open(yaml_file, "w", encoding="utf-8") as file:
+            logger.info(f"writing:{yaml_file}")
+            file.write(content)
 
 
 if __name__ != "__main__":
